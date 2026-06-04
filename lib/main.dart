@@ -6,6 +6,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/achievements/achievements_screen.dart';
 import 'screens/diary/history_screen.dart';
+import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/tips/tips_screen.dart';
 import 'screens/profile/profile_screen.dart';
 
@@ -82,17 +83,38 @@ class _AppRootState extends State<_AppRoot> {
       return const LoginScreen();
     }
 
+    // Backend won't compute target_ml until the user submits onboarding.
+    // Force the flow before they can see a broken dashboard.
+    if (auth.needsOnboarding) {
+      return const OnboardingScreen();
+    }
+
     return Scaffold(
       body: IndexedStack(index: _tab, children: _screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.water_drop_outlined), selectedIcon: Icon(Icons.water_drop), label: 'Today'),
-          NavigationDestination(icon: Icon(Icons.history_outlined), selectedIcon: Icon(Icons.history), label: 'History'),
-          NavigationDestination(icon: Icon(Icons.emoji_events_outlined), selectedIcon: Icon(Icons.emoji_events), label: 'Awards'),
-          NavigationDestination(icon: Icon(Icons.lightbulb_outlined), selectedIcon: Icon(Icons.lightbulb), label: 'Tips'),
-          NavigationDestination(icon: Icon(Icons.person_outlined), selectedIcon: Icon(Icons.person), label: 'Profile'),
+          NavigationDestination(
+              icon: Icon(Icons.water_drop_outlined),
+              selectedIcon: Icon(Icons.water_drop),
+              label: 'Today'),
+          NavigationDestination(
+              icon: Icon(Icons.history_outlined),
+              selectedIcon: Icon(Icons.history),
+              label: 'History'),
+          NavigationDestination(
+              icon: Icon(Icons.emoji_events_outlined),
+              selectedIcon: Icon(Icons.emoji_events),
+              label: 'Awards'),
+          NavigationDestination(
+              icon: Icon(Icons.lightbulb_outlined),
+              selectedIcon: Icon(Icons.lightbulb),
+              label: 'Tips'),
+          NavigationDestination(
+              icon: Icon(Icons.person_outlined),
+              selectedIcon: Icon(Icons.person),
+              label: 'Profile'),
         ],
       ),
     );

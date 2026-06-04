@@ -11,6 +11,27 @@ class AuthProvider extends ChangeNotifier {
   bool get loading => _loading;
   String? get error => _error;
   bool get isLoggedIn => _user != null;
+  bool get needsOnboarding => _user != null && !_user!.isOnboarded;
+
+  void clearError() {
+    if (_error != null) {
+      _error = null;
+      notifyListeners();
+    }
+  }
+
+  /// Pulls a friendly error message out of a Laravel 422 validation response.
+  String _readError(Map<String, dynamic> body, String fallback) {
+    final msg = body['message'];
+    if (msg is String && msg.isNotEmpty) return msg;
+    final errors = body['errors'];
+    if (errors is Map && errors.isNotEmpty) {
+      final first = errors.values.first;
+      if (first is List && first.isNotEmpty) return first.first.toString();
+      if (first is String) return first;
+    }
+    return fallback;
+  }
 
   Future<bool> login(String email, String password) async {
     _loading = true;
@@ -20,16 +41,23 @@ class AuthProvider extends ChangeNotifier {
     final res = await ApiService.post('/auth/login', {
       'email': email,
       'password': password,
+      'device_name': 'mobile',
     }, auth: false);
 
     _loading = false;
-    if (res['success']) {
-      await ApiService.setToken(res['data']['token']);
-      _user = User.fromJson(res['data']['user']);
+    if (res['success'] == true) {
+      final data = res['data'] as Map<String, dynamic>;
+      await ApiService.setToken(data['token'].toString());
+      _user = User.fromJson(data['user'] as Map<String, dynamic>);
       notifyListeners();
       return true;
     } else {
-      _error = res['data']['message'] ?? 'Login failed';
+      _error = _readError(
+        res['data'] is Map<String, dynamic>
+            ? res['data'] as Map<String, dynamic>
+            : <String, dynamic>{},
+        'Login failed',
+      );
       notifyListeners();
       return false;
     }
@@ -48,31 +76,60 @@ class AuthProvider extends ChangeNotifier {
     }, auth: false);
 
     _loading = false;
-    if (res['success']) {
-      await ApiService.setToken(res['data']['token']);
-      _user = User.fromJson(res['data']['user']);
+    if (res['success'] == true) {
+      final data = res['data'] as Map<String, dynamic>;
+      await ApiService.setToken(data['token'].toString());
+      _user = User.fromJson(data['user'] as Map<String, dynamic>);
       notifyListeners();
       return true;
     } else {
-      _error = res['data']['message'] ?? 'Registration failed';
+      _error = _readError(
+        res['data'] is Map<String, dynamic>
+            ? res['data'] as Map<String, dynamic>
+            : <String, dynamic>{},
+        'Registration failed',
+      );
       notifyListeners();
       return false;
     }
   }
 
+  /// Loads the current user on app start (called from main.dart after the
+  /// shared_preferences token is available).
   Future<void> loadUser() async {
     final token = await ApiService.getToken();
     if (token == null) return;
 
     final res = await ApiService.get('/auth/me');
-    if (res['success']) {
-      _user = User.fromJson(res['data']['user'] ?? res['data']);
-      notifyListeners();
+    if (res['success'] == true) {
+      final data = res['data'];
+      Map<String, dynamic>? userJson;
+      if (data is Map<String, dynamic>) {
+        if (data['user'] is Map<String, dynamic>) {
+          userJson = data['user'] as Map<String, dynamic>;
+        } else if (data['id'] != null) {
+          userJson = data;
+        }
+      }
+      if (userJson != null) {
+        _user = User.fromJson(userJson);
+        notifyListeners();
+      }
+    } else if (res['status'] == 401) {
+      // Stale token — wipe it so the login screen appears.
+      await ApiService.clearToken();
     }
   }
 
+  /// Re-fetches the current user, e.g. after onboarding completes.
+  Future<void> refreshUser() => loadUser();
+
   Future<void> logout() async {
-    await ApiService.post('/auth/logout', {});
+    try {
+      await ApiService.post('/auth/logout', {});
+    } catch (_) {
+      // Even if the logout call fails, drop local state.
+    }
     await ApiService.clearToken();
     _user = null;
     notifyListeners();

@@ -22,10 +22,23 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final res = await ApiService.get('/achievements');
-    if (res['success']) {
-      final list = res['data']['data'] ?? res['data'];
+    if (res['success'] == true) {
+      final body = res['data'];
+      List rawList;
+      if (body is Map && body['achievements'] is List) {
+        rawList = body['achievements'] as List;
+      } else if (body is Map && body['data'] is List) {
+        rawList = body['data'] as List;
+      } else if (body is List) {
+        rawList = body;
+      } else {
+        rawList = const [];
+      }
       setState(() {
-        _achievements = (list as List).map((e) => Achievement.fromJson(e)).toList();
+        _achievements = rawList
+            .whereType<Map<String, dynamic>>()
+            .map(Achievement.fromJson)
+            .toList();
         _loading = false;
       });
     } else {
@@ -47,16 +60,25 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  if (_achievements.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(child: Text('No achievements yet')),
+                    ),
                   if (unlocked.isNotEmpty) ...[
                     Text('Unlocked (${unlocked.length})',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     ...unlocked.map((a) => _AchievementCard(a: a)),
                     const SizedBox(height: 16),
                   ],
                   if (locked.isNotEmpty) ...[
                     Text('Locked (${locked.length})',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey)),
                     const SizedBox(height: 8),
                     ...locked.map((a) => _AchievementCard(a: a)),
                   ],
@@ -78,14 +100,16 @@ class _AchievementCard extends StatelessWidget {
       color: a.unlocked ? const Color(0xFFFFF9C4) : null,
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: a.unlocked ? Colors.amber.shade100 : Colors.grey.shade100,
+          backgroundColor:
+              a.unlocked ? Colors.amber.shade100 : Colors.grey.shade100,
           child: Text(a.icon ?? (a.unlocked ? '🏆' : '🔒'),
               style: const TextStyle(fontSize: 20)),
         ),
-        title: Text(a.name, style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: a.unlocked ? Colors.black : Colors.grey,
-        )),
+        title: Text(a.name,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: a.unlocked ? Colors.black : Colors.grey,
+            )),
         subtitle: Text(a.description),
         trailing: a.unlocked
             ? const Icon(Icons.check_circle, color: Colors.amber)

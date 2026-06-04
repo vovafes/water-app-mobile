@@ -13,7 +13,6 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   List<DrinkLog> _logs = [];
   bool _loading = true;
-  int _page = 1;
 
   @override
   void initState() {
@@ -23,11 +22,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final res = await ApiService.get('/drink-logs?page=$_page&per_page=50');
-    if (res['success']) {
-      final list = res['data']['data'] ?? res['data'];
+    final res = await ApiService.get('/drink-logs?per_page=50');
+    if (res['success'] == true) {
+      final body = res['data'];
+      // Laravel paginate() returns { data: [...], current_page, ... }.
+      // Be defensive in case the shape changes.
+      List rawList;
+      if (body is Map && body['data'] is List) {
+        rawList = body['data'] as List;
+      } else if (body is List) {
+        rawList = body;
+      } else {
+        rawList = const [];
+      }
       setState(() {
-        _logs = (list as List).map((e) => DrinkLog.fromJson(e)).toList();
+        _logs = rawList
+            .whereType<Map<String, dynamic>>()
+            .map(DrinkLog.fromJson)
+            .toList();
         _loading = false;
       });
     } else {
@@ -38,7 +50,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Map<String, List<DrinkLog>> get _grouped {
     final map = <String, List<DrinkLog>>{};
     for (final log in _logs) {
-      final key = DateFormat('EEEE, MMM d').format(log.loggedAt);
+      final key = DateFormat('EEEE, MMM d').format(log.consumedAt);
       map.putIfAbsent(key, () => []).add(log);
     }
     return map;
@@ -52,37 +64,53 @@ class _HistoryScreenState extends State<HistoryScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _logs.isEmpty
-              ? const Center(child: Text('No history yet'))
+              ? RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView(
+                    children: const [
+                      SizedBox(height: 120),
+                      Center(child: Text('No history yet')),
+                    ],
+                  ),
+                )
               : RefreshIndicator(
                   onRefresh: _load,
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: grouped.entries.map((entry) {
-                      final total = entry.value.fold(0.0, (s, l) => s + l.amount);
+                      final total =
+                          entry.value.fold(0.0, (s, l) => s + l.volumeMl);
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
                             children: [
                               Text(entry.key,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16)),
                               Text('${total.toInt()} ml',
-                                  style: const TextStyle(color: Color(0xFF1976D2), fontWeight: FontWeight.bold)),
+                                  style: const TextStyle(
+                                      color: Color(0xFF1976D2),
+                                      fontWeight: FontWeight.bold)),
                             ],
                           ),
                           const SizedBox(height: 4),
                           ...entry.value.map((log) => ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: CircleAvatar(
-                              backgroundColor: Colors.blue.shade50,
-                              child: Text(log.drinkIcon ?? '💧'),
-                            ),
-                            title: Text(log.drinkName),
-                            subtitle: Text(DateFormat('HH:mm').format(log.loggedAt)),
-                            trailing: Text('${log.amount.toInt()} ml',
-                                style: const TextStyle(fontWeight: FontWeight.bold)),
-                          )),
+                                contentPadding: EdgeInsets.zero,
+                                leading: CircleAvatar(
+                                  backgroundColor: Colors.blue.shade50,
+                                  child: const Text('💧'),
+                                ),
+                                title: Text(log.drinkName),
+                                subtitle: Text(
+                                    DateFormat('HH:mm').format(log.consumedAt)),
+                                trailing: Text('${log.volumeMl.toInt()} ml',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
+                              )),
                           const Divider(),
                         ],
                       );
