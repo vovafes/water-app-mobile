@@ -52,6 +52,21 @@ class DashboardProvider extends ChangeNotifier {
       _error = 'Failed to load dashboard';
     }
 
+    // Also load the full active drink catalog so the dashboard picker
+    // has more than just the user's 6 most-used. /drinks returns
+    // `{drinks: [...]}` per DrinkController::index.
+    final dr = await ApiService.get('/drinks');
+    if (dr['success'] == true && dr['data'] is Map<String, dynamic>) {
+      final body = dr['data'] as Map<String, dynamic>;
+      final list = body['drinks'];
+      if (list is List) {
+        _drinks = list
+            .whereType<Map<String, dynamic>>()
+            .map(Drink.fromJson)
+            .toList();
+      }
+    }
+
     _loading = false;
     notifyListeners();
   }

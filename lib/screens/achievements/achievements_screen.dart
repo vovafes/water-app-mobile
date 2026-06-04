@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../models/achievement.dart';
+import '../../theme.dart';
 
 class AchievementsScreen extends StatefulWidget {
   const AchievementsScreen({super.key});
@@ -12,6 +13,7 @@ class AchievementsScreen extends StatefulWidget {
 class _AchievementsScreenState extends State<AchievementsScreen> {
   List<Achievement> _achievements = [];
   bool _loading = true;
+  _Filter _filter = _Filter.all;
 
   @override
   void initState() {
@@ -20,8 +22,10 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     final res = await ApiService.get('/achievements');
+    if (!mounted) return;
     if (res['success'] == true) {
       final body = res['data'];
       List rawList;
@@ -46,13 +50,27 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     }
   }
 
+  List<Achievement> get _visible {
+    return switch (_filter) {
+      _Filter.all => _achievements,
+      _Filter.unlocked =>
+        _achievements.where((a) => a.unlocked).toList(),
+      _Filter.locked =>
+        _achievements.where((a) => !a.unlocked).toList(),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
-    final unlocked = _achievements.where((a) => a.unlocked).toList();
-    final locked = _achievements.where((a) => !a.unlocked).toList();
+    final cs = Theme.of(context).colorScheme;
+    final unlockedCount = _achievements.where((a) => a.unlocked).length;
+    final total = _achievements.length;
+    final totalPoints = _achievements
+        .where((a) => a.unlocked)
+        .fold(0, (sum, a) => sum + a.points);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Achievements')),
+      appBar: AppBar(title: const Text('Awards')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -60,60 +78,478 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  if (_achievements.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 40),
-                      child: Center(child: Text('No achievements yet')),
+                  _HeroStats(
+                    unlocked: unlockedCount,
+                    total: total,
+                    points: totalPoints,
+                  ),
+                  const SizedBox(height: 20),
+                  _FilterTabs(
+                    current: _filter,
+                    onChanged: (f) => setState(() => _filter = f),
+                    counts: {
+                      _Filter.all: total,
+                      _Filter.unlocked: unlockedCount,
+                      _Filter.locked: total - unlockedCount,
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  if (_visible.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 48),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Text(
+                              switch (_filter) {
+                                _Filter.unlocked => '🔒',
+                                _Filter.locked => '🏆',
+                                _Filter.all => '🌟',
+                              },
+                              style: const TextStyle(fontSize: 48),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              switch (_filter) {
+                                _Filter.unlocked =>
+                                  'No badges unlocked yet — start logging drinks!',
+                                _Filter.locked => 'All badges unlocked!',
+                                _Filter.all => 'No achievements available',
+                              },
+                              style: TextStyle(
+                                  color: cs.onSurface
+                                      .withValues(alpha: 0.6)),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: 0.78,
+                      ),
+                      itemCount: _visible.length,
+                      itemBuilder: (context, i) => _BadgeTile(
+                        achievement: _visible[i],
+                        onTap: () =>
+                            _showDetail(context, _visible[i]),
+                      ),
                     ),
-                  if (unlocked.isNotEmpty) ...[
-                    Text('Unlocked (${unlocked.length})',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    ...unlocked.map((a) => _AchievementCard(a: a)),
-                    const SizedBox(height: 16),
-                  ],
-                  if (locked.isNotEmpty) ...[
-                    Text('Locked (${locked.length})',
-                        style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey)),
-                    const SizedBox(height: 8),
-                    ...locked.map((a) => _AchievementCard(a: a)),
-                  ],
                 ],
               ),
             ),
     );
   }
+
+  void _showDetail(BuildContext context, Achievement a) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => _BadgeDetail(achievement: a),
+    );
+  }
 }
 
-class _AchievementCard extends StatelessWidget {
-  final Achievement a;
-  const _AchievementCard({required this.a});
+enum _Filter { all, unlocked, locked }
+
+class _HeroStats extends StatelessWidget {
+  final int unlocked;
+  final int total;
+  final int points;
+  const _HeroStats({
+    required this.unlocked,
+    required this.total,
+    required this.points,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      color: a.unlocked ? const Color(0xFFFFF9C4) : null,
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor:
-              a.unlocked ? Colors.amber.shade100 : Colors.grey.shade100,
-          child: Text(a.icon ?? (a.unlocked ? '🏆' : '🔒'),
-              style: const TextStyle(fontSize: 20)),
+    final progress = total > 0 ? unlocked / total : 0.0;
+    final pct = (progress * 100).round();
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            BrandColors.gradientStartStrong,
+            BrandColors.gradientEndStrong,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        title: Text(a.name,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: BrandColors.sky500.withValues(alpha: 0.25),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 76,
+                height: 76,
+                child: CircularProgressIndicator(
+                  value: progress,
+                  strokeWidth: 8,
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white,
+                ),
+              ),
+              const Text('🏆', style: TextStyle(fontSize: 32)),
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$unlocked / $total badges',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '$pct% complete',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                if (points > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '⭐ $points points',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterTabs extends StatelessWidget {
+  final _Filter current;
+  final ValueChanged<_Filter> onChanged;
+  final Map<_Filter, int> counts;
+  const _FilterTabs({
+    required this.current,
+    required this.onChanged,
+    required this.counts,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SegmentedButton<_Filter>(
+      segments: [
+        ButtonSegment(
+          value: _Filter.all,
+          label: Text('All (${counts[_Filter.all] ?? 0})'),
+        ),
+        ButtonSegment(
+          value: _Filter.unlocked,
+          label: Text('Unlocked (${counts[_Filter.unlocked] ?? 0})'),
+        ),
+        ButtonSegment(
+          value: _Filter.locked,
+          label: Text('Locked (${counts[_Filter.locked] ?? 0})'),
+        ),
+      ],
+      selected: {current},
+      onSelectionChanged: (s) => onChanged(s.first),
+    );
+  }
+}
+
+class _BadgeTile extends StatelessWidget {
+  final Achievement achievement;
+  final VoidCallback onTap;
+  const _BadgeTile({required this.achievement, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final unlocked = achievement.unlocked;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: unlocked
+              ? const LinearGradient(
+                  colors: [
+                    Color(0xFFFFEFC1),
+                    Color(0xFFFFD8A8),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: unlocked ? null : cs.surfaceContainer,
+          border: Border.all(
+            color: unlocked
+                ? BrandColors.amber500.withValues(alpha: 0.4)
+                : cs.outline,
+            width: unlocked ? 1.5 : 1,
+          ),
+          boxShadow: unlocked
+              ? [
+                  BoxShadow(
+                    color: BrandColors.amber500.withValues(alpha: 0.25),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: unlocked
+                        ? Colors.white
+                        : cs.surfaceContainerHigh,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    achievement.icon ?? (unlocked ? '🏆' : '🔒'),
+                    style: TextStyle(
+                      fontSize: 26,
+                      color: unlocked ? null : cs.outline,
+                    ),
+                  ),
+                ),
+                if (unlocked)
+                  Positioned(
+                    right: 2,
+                    bottom: 2,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.check_circle,
+                          color: BrandColors.emerald500, size: 16),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              achievement.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: unlocked
+                    ? const Color(0xFF7C4A03)
+                    : cs.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            if (achievement.points > 0) ...[
+              const SizedBox(height: 2),
+              Text(
+                '⭐ ${achievement.points}',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: unlocked
+                      ? const Color(0xFF7C4A03)
+                      : cs.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BadgeDetail extends StatelessWidget {
+  final Achievement achievement;
+  const _BadgeDetail({required this.achievement});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final unlocked = achievement.unlocked;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        16,
+        24,
+        24 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: cs.outline,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            width: 96,
+            height: 96,
+            decoration: BoxDecoration(
+              gradient: unlocked
+                  ? const LinearGradient(
+                      colors: [Color(0xFFFFC56F), Color(0xFFFF9933)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              color: unlocked ? null : cs.surfaceContainerHigh,
+              shape: BoxShape.circle,
+              boxShadow: unlocked
+                  ? [
+                      BoxShadow(
+                        color: BrandColors.amber500.withValues(alpha: 0.5),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ]
+                  : null,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              achievement.icon ?? (unlocked ? '🏆' : '🔒'),
+              style: const TextStyle(fontSize: 48),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            achievement.name,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            achievement.description,
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: a.unlocked ? Colors.black : Colors.grey,
-            )),
-        subtitle: Text(a.description),
-        trailing: a.unlocked
-            ? const Icon(Icons.check_circle, color: Colors.amber)
-            : const Icon(Icons.lock_outline, color: Colors.grey),
+              fontSize: 14,
+              color: cs.onSurface.withValues(alpha: 0.75),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (unlocked)
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: BrandColors.emerald500.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: BrandColors.emerald500.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.check_circle,
+                      size: 16, color: BrandColors.emerald500),
+                  const SizedBox(width: 6),
+                  Text(
+                    achievement.unlockedAt != null
+                        ? 'Unlocked'
+                        : 'Unlocked',
+                    style: const TextStyle(
+                      color: BrandColors.emerald500,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainer,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: cs.outline),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.lock_outline, size: 16),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'Keep going to unlock',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (achievement.points > 0) ...[
+            const SizedBox(height: 8),
+            Text('⭐ ${achievement.points} points',
+                style: TextStyle(
+                    color: cs.onSurface.withValues(alpha: 0.7),
+                    fontSize: 12)),
+          ],
+        ],
       ),
     );
   }

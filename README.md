@@ -62,6 +62,14 @@ first (`docker compose up -d` in the water-app repo).
    (both gitignored — back the `.jks` up somewhere safe; losing it
    means you can never sign updates under the same identity).
 
+   To regenerate the app icon (after editing the gradient or droplet):
+   ```powershell
+   cd android
+   .\make-icon.ps1           # renders assets/icon/{icon,icon_foreground}.png
+   cd ..
+   dart run flutter_launcher_icons
+   ```
+
 3. **Build:**
    ```bash
    flutter build apk --release --dart-define=API_BASE_URL=http://<LAN_IP>:8000
@@ -124,17 +132,15 @@ not produce.
    `android:usesCleartextTraffic="true"` because the dev backend is
    plain HTTP. Switch the backend to HTTPS and drop the flag before
    any real distribution.
-2. **No icon images for drinks yet.** The backend returns
-   `icon_path` for each drink (relative to `/storage`) but the mobile
-   chip currently renders an emoji keyed off the category slug.
-   `Drink.iconUrl` is already plumbed — wire it to a `NetworkImage`
-   when the backend's `storage:link` is in place.
-3. **`/api/v1/tips` 500s** because the backend's `TipArticleController`
-   calls a query scope (`forLocale`) that the `TipArticle` model
-   doesn't have. The mobile Tips tab shows an empty state instead of
-   crashing — but to actually display tips, drop the `->forLocale($locale)`
-   call from the controller (the JSON is locale-keyed already and the
-   client resolves the right language at read time).
+2. **No drink icon images.** The backend returns `icon_path` for each
+   drink (relative to `/storage`) but the mobile chip currently
+   renders an emoji keyed off the category slug. `Drink.iconUrl` is
+   already plumbed — wire it to a `NetworkImage` when the backend's
+   `storage:link` is in place.
+3. **No profile photo / avatar.** The Laravel `User` model has no
+   `avatar`, `profile_photo_path`, or similar column, and there is no
+   upload endpoint. Adding this requires a backend migration +
+   storage endpoint before the mobile side can support it.
 4. **`shared_preferences_android` deprecation warning** — uses the
    old Kotlin Gradle Plugin. Non-fatal, but future Flutter releases
    will reject it. Upgrade when its next major drops.

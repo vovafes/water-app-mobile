@@ -7,10 +7,12 @@ class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
+  State<HistoryScreen> createState() => HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+/// Public state class — main.dart holds a GlobalKey<HistoryScreenState>
+/// so it can call refresh() when the History tab becomes active.
+class HistoryScreenState extends State<HistoryScreen> {
   List<DrinkLog> _logs = [];
   bool _loading = true;
 
@@ -20,13 +22,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
     _load();
   }
 
+  /// Public entry point for parent tab manager.
+  Future<void> refresh() => _load();
+
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     final res = await ApiService.get('/drink-logs?per_page=50');
+    if (!mounted) return;
     if (res['success'] == true) {
       final body = res['data'];
       // Laravel paginate() returns { data: [...], current_page, ... }.
-      // Be defensive in case the shape changes.
       List rawList;
       if (body is Map && body['data'] is List) {
         rawList = body['data'] as List;
@@ -58,6 +64,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final grouped = _grouped;
     return Scaffold(
       appBar: AppBar(title: const Text('Drink History')),
@@ -67,9 +74,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ? RefreshIndicator(
                   onRefresh: _load,
                   child: ListView(
-                    children: const [
-                      SizedBox(height: 120),
-                      Center(child: Text('No history yet')),
+                    children: [
+                      const SizedBox(height: 120),
+                      Center(
+                        child: Text('No history yet',
+                            style: TextStyle(
+                                color: cs.onSurface
+                                    .withValues(alpha: 0.6))),
+                      ),
                     ],
                   ),
                 )
@@ -78,8 +90,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: grouped.entries.map((entry) {
-                      final total =
-                          entry.value.fold(0.0, (s, l) => s + l.volumeMl);
+                      final total = entry.value
+                          .fold(0.0, (s, l) => s + l.volumeMl);
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -89,29 +101,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             children: [
                               Text(entry.key,
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16)),
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15)),
                               Text('${total.toInt()} ml',
-                                  style: const TextStyle(
-                                      color: Color(0xFF1976D2),
-                                      fontWeight: FontWeight.bold)),
+                                  style: TextStyle(
+                                      color: cs.primary,
+                                      fontWeight: FontWeight.w700)),
                             ],
                           ),
                           const SizedBox(height: 4),
                           ...entry.value.map((log) => ListTile(
                                 contentPadding: EdgeInsets.zero,
                                 leading: CircleAvatar(
-                                  backgroundColor: Colors.blue.shade50,
+                                  backgroundColor: cs.primaryContainer,
                                   child: const Text('💧'),
                                 ),
                                 title: Text(log.drinkName),
-                                subtitle: Text(
-                                    DateFormat('HH:mm').format(log.consumedAt)),
-                                trailing: Text('${log.volumeMl.toInt()} ml',
+                                subtitle: Text(DateFormat('HH:mm')
+                                    .format(log.consumedAt)),
+                                trailing: Text(
+                                    '${log.volumeMl.toInt()} ml',
                                     style: const TextStyle(
-                                        fontWeight: FontWeight.bold)),
+                                        fontWeight: FontWeight.w600)),
                               )),
-                          const Divider(),
+                          const Divider(height: 24),
                         ],
                       );
                     }).toList(),
