@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../providers/auth_provider.dart';
+import '../../theme.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -18,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       body: SafeArea(
@@ -27,32 +30,65 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.water_drop, size: 64, color: Color(0xFF2196F3)),
-              const SizedBox(height: 8),
-              const Text('HydroTrack', textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [BrandColors.sky400, BrandColors.cyan500],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: BrandColors.sky500.withValues(alpha: 0.4),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: const Text('💧',
+                    style: TextStyle(fontSize: 36)),
+              ),
+              const SizedBox(height: 16),
+              Text('Water App',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: cs.onSurface,
+                  )),
               const SizedBox(height: 4),
-              const Text('Track your daily hydration', textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey)),
+              Text(
+                'Welcome back'.tr(),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: cs.onSurface.withValues(alpha: 0.6)),
+              ),
               const SizedBox(height: 40),
               if (auth.error != null)
                 Container(
                   padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50,
+                    color: BrandColors.rose500.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.shade200),
+                    border: Border.all(
+                        color:
+                            BrandColors.rose500.withValues(alpha: 0.3)),
                   ),
-                  child: Text(auth.error!, style: TextStyle(color: Colors.red.shade700)),
+                  child: Text(auth.error!,
+                      style:
+                          const TextStyle(color: BrandColors.rose500)),
                 ),
               TextField(
                 controller: _emailCtrl,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'Email'.tr(),
+                  prefixIcon: const Icon(Icons.email_outlined),
                 ),
               ),
               const SizedBox(height: 16),
@@ -60,37 +96,54 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _passCtrl,
                 obscureText: _obscure,
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: 'Password'.tr(),
                   prefixIcon: const Icon(Icons.lock_outlined),
-                  border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
-                    onPressed: () => setState(() => _obscure = !_obscure),
+                    icon: Icon(_obscure
+                        ? Icons.visibility
+                        : Icons.visibility_off),
+                    onPressed: () =>
+                        setState(() => _obscure = !_obscure),
                   ),
                 ),
               ),
               const SizedBox(height: 24),
               FilledButton(
-                onPressed: auth.loading ? null : () async {
-                  await context.read<AuthProvider>().login(
-                    _emailCtrl.text.trim(),
-                    _passCtrl.text,
-                  );
-                },
+                onPressed: auth.loading
+                    ? null
+                    : () async {
+                        await context.read<AuthProvider>().login(
+                              _emailCtrl.text.trim(),
+                              _passCtrl.text,
+                            );
+                      },
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: const Color(0xFF2196F3),
                 ),
                 child: auth.loading
-                    ? const SizedBox(height: 20, width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('Sign In', style: TextStyle(fontSize: 16)),
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2))
+                    : Text('Sign in'.tr(),
+                        style: const TextStyle(fontSize: 16)),
               ),
               const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const RegisterScreen())),
-                child: const Text("Don't have an account? Sign up"),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text("Don't have an account?".tr(),
+                      style: TextStyle(
+                          color: cs.onSurface.withValues(alpha: 0.7))),
+                  TextButton(
+                    onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const RegisterScreen())),
+                    child: Text('Create one'.tr()),
+                  ),
+                ],
               ),
             ],
           ),

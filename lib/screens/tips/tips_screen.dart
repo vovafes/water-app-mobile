@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../services/api_service.dart';
 import '../../theme.dart';
 
@@ -26,6 +27,8 @@ class _TipsScreenState extends State<TipsScreen> {
       _loading = true;
       _error = null;
     });
+    // Backend returns title/summary/body as locale-keyed JSON; we
+    // pick the right language client-side in _Tip.fromJson.
     final res = await ApiService.get('/tips');
     if (!mounted) return;
     if (res['success'] == true) {
@@ -40,10 +43,11 @@ class _TipsScreenState extends State<TipsScreen> {
       } else {
         rawList = const [];
       }
+      final locale = context.locale.languageCode;
       setState(() {
         _tips = rawList
             .whereType<Map<String, dynamic>>()
-            .map(_Tip.fromJson)
+            .map((j) => _Tip.fromJson(j, locale))
             .toList();
         _loading = false;
       });
@@ -59,7 +63,7 @@ class _TipsScreenState extends State<TipsScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Tips')),
+      appBar: AppBar(title: Text('Tips'.tr())),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -74,7 +78,7 @@ class _TipsScreenState extends State<TipsScreen> {
                               const Text('💡',
                                   style: TextStyle(fontSize: 48)),
                               const SizedBox(height: 8),
-                              Text(_error ?? 'No tips yet',
+                              Text(_error ?? 'No tips available in your language yet.'.tr(),
                                   style: TextStyle(
                                       color: cs.onSurface
                                           .withValues(alpha: 0.6))),
@@ -168,7 +172,7 @@ class _TipCard extends StatelessWidget {
                       if (tip.category != null)
                         _CategoryChip(label: tip.category!),
                       const Spacer(),
-                      Text('Read more',
+                      Text('Read more'.tr(),
                           style: TextStyle(
                               fontSize: 12,
                               color: cs.primary,
@@ -364,24 +368,31 @@ class _Tip {
     return '${ApiService.assetBaseUrl}/$coverPath';
   }
 
-  factory _Tip.fromJson(Map<String, dynamic> json) {
+  factory _Tip.fromJson(Map<String, dynamic> json, String preferred) {
     return _Tip(
-      title: _readI18n(json['title'] ?? json['localized_title']) ?? 'Untitled',
-      summary: _readI18n(json['summary'] ?? json['localized_summary']),
-      body: _readI18n(json['body'] ?? json['localized_body'] ?? json['content']) ??
+      title: _readI18n(
+              json['title'] ?? json['localized_title'], preferred) ??
+          'Untitled',
+      summary: _readI18n(
+          json['summary'] ?? json['localized_summary'], preferred),
+      body: _readI18n(
+              json['body'] ?? json['localized_body'] ?? json['content'],
+              preferred) ??
           '',
       coverPath: json['cover_image']?.toString(),
       category: json['category']?.toString(),
     );
   }
 
-  /// title/summary/body are JSON keyed by locale (en/de/ru/uk). Pull the
-  /// best available language; if it's already a String, return it.
-  static String? _readI18n(dynamic v) {
+  /// title/summary/body are JSON keyed by locale (en/de/ru/uk). Prefer
+  /// the user's active locale, fall back to English, then any other
+  /// non-empty value.
+  static String? _readI18n(dynamic v, String preferred) {
     if (v == null) return null;
     if (v is String) return v.isEmpty ? null : v;
     if (v is Map) {
-      for (final lang in ['en', 'de', 'ru', 'uk']) {
+      final order = <String>{preferred, 'en', 'de', 'ru', 'uk'};
+      for (final lang in order) {
         final s = v[lang];
         if (s is String && s.isNotEmpty) return s;
       }

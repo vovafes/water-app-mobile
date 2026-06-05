@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'providers/auth_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'providers/theme_provider.dart';
@@ -12,15 +14,37 @@ import 'screens/tips/tips_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'theme.dart';
 
-void main() {
+/// All four locales the web app supports. The English text doubles as
+/// the translation key (mirroring the Laravel `__('...')` pattern), so
+/// `assets/i18n/en.json` is essentially an identity map.
+const supportedLocales = <Locale>[
+  Locale('en'),
+  Locale('de'),
+  Locale('ru'),
+  Locale('uk'),
+];
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();
+  // Loads month/weekday names for every locale intl knows about; needed
+  // before DateFormat with a non-default locale can format anything.
+  await initializeDateFormatting();
+
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => DashboardProvider()),
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
-      ],
-      child: const WaterApp(),
+    EasyLocalization(
+      supportedLocales: supportedLocales,
+      path: 'assets/i18n',
+      fallbackLocale: const Locale('en'),
+      useFallbackTranslations: true,
+      child: MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider(create: (_) => DashboardProvider()),
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ],
+        child: const WaterApp(),
+      ),
     ),
   );
 }
@@ -44,12 +68,31 @@ class _WaterAppState extends State<WaterApp> {
   @override
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeProvider>();
+    // When auth loads (or refreshes) the user's preferred locale,
+    // propagate it to EasyLocalization. Skips if the stored device
+    // locale already matches so we don't churn frames on every build.
+    final user = context.watch<AuthProvider>().user;
+    final preferred = user?.locale;
+    if (preferred != null) {
+      final desired = Locale(preferred);
+      final current = context.locale;
+      if (current.languageCode != desired.languageCode &&
+          supportedLocales.any((l) => l.languageCode == desired.languageCode)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) context.setLocale(desired);
+        });
+      }
+    }
+
     return MaterialApp(
       title: 'Water App',
       debugShowCheckedModeBanner: false,
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
       themeMode: theme.mode,
+      localizationsDelegates: context.localizationDelegates,
+      supportedLocales: context.supportedLocales,
+      locale: context.locale,
       home: const _AppRoot(),
     );
   }
@@ -65,9 +108,6 @@ class _AppRoot extends StatefulWidget {
 class _AppRootState extends State<_AppRoot> {
   int _tab = 0;
 
-  // Each tab has a key so we can call refresh on the History tab when it
-  // becomes the active destination (since logging a drink on the
-  // dashboard wouldn't otherwise propagate to the history list).
   final GlobalKey<HistoryScreenState> _historyKey =
       GlobalKey<HistoryScreenState>();
 
@@ -81,8 +121,6 @@ class _AppRootState extends State<_AppRoot> {
 
   void _onTabSelected(int index) {
     setState(() => _tab = index);
-    // Tab 1 is History — re-fetch when the user opens it so a drink
-    // logged on the dashboard appears immediately.
     if (index == 1) {
       _historyKey.currentState?.refresh();
     }
@@ -105,31 +143,31 @@ class _AppRootState extends State<_AppRoot> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: _onTabSelected,
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.water_drop_outlined),
-            selectedIcon: Icon(Icons.water_drop),
-            label: 'Today',
+            icon: const Icon(Icons.water_drop_outlined),
+            selectedIcon: const Icon(Icons.water_drop),
+            label: 'Dashboard'.tr(),
           ),
           NavigationDestination(
-            icon: Icon(Icons.history_outlined),
-            selectedIcon: Icon(Icons.history),
-            label: 'History',
+            icon: const Icon(Icons.history_outlined),
+            selectedIcon: const Icon(Icons.history),
+            label: 'History'.tr(),
           ),
           NavigationDestination(
-            icon: Icon(Icons.emoji_events_outlined),
-            selectedIcon: Icon(Icons.emoji_events),
-            label: 'Awards',
+            icon: const Icon(Icons.emoji_events_outlined),
+            selectedIcon: const Icon(Icons.emoji_events),
+            label: 'Achievements'.tr(),
           ),
           NavigationDestination(
-            icon: Icon(Icons.lightbulb_outlined),
-            selectedIcon: Icon(Icons.lightbulb),
-            label: 'Tips',
+            icon: const Icon(Icons.lightbulb_outlined),
+            selectedIcon: const Icon(Icons.lightbulb),
+            label: 'Tips'.tr(),
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outlined),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
+            icon: const Icon(Icons.person_outlined),
+            selectedIcon: const Icon(Icons.person),
+            label: 'Profile'.tr(),
           ),
         ],
       ),

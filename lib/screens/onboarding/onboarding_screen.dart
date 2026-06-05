@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 
@@ -88,7 +89,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Welcome'),
+        title: Text('Welcome back'.tr()),
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
@@ -97,9 +98,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                "Tell us about yourself so we can calculate your daily hydration target.",
-                style: TextStyle(color: Colors.blueGrey),
+              Text(
+                'We use this to calculate your personal water goal.'.tr(),
+                style: const TextStyle(color: Colors.blueGrey),
               ),
               const SizedBox(height: 24),
 
@@ -116,25 +117,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       style: TextStyle(color: Colors.red.shade700)),
                 ),
 
-              _sectionLabel('Sex'),
+              _sectionLabel('Sex'.tr()),
               SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'male', label: Text('Male')),
-                  ButtonSegment(value: 'female', label: Text('Female')),
-                  ButtonSegment(value: 'other', label: Text('Other')),
+                segments: [
+                  ButtonSegment(value: 'male', label: Text('Male'.tr())),
+                  ButtonSegment(
+                      value: 'female', label: Text('Female'.tr())),
+                  ButtonSegment(
+                      value: 'other', label: Text('Other'.tr())),
                 ],
                 selected: {_sex},
                 onSelectionChanged: (s) => setState(() => _sex = s.first),
               ),
 
-              _sectionLabel('Birth Date'),
+              _sectionLabel('Birth date'.tr()),
               OutlinedButton.icon(
                 onPressed: _pickBirthDate,
                 icon: const Icon(Icons.calendar_today),
                 label: Text(DateFormat('yyyy-MM-dd').format(_birthDate)),
               ),
 
-              _sectionLabel('Weight: ${_weight.round()} kg'),
+              _sectionLabel(
+                  '${'Weight (kg)'.tr()}: ${_weight.round()} kg'),
               Slider(
                 value: _weight,
                 min: 30,
@@ -143,7 +147,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onChanged: (v) => setState(() => _weight = v),
               ),
 
-              _sectionLabel('Height: ${_height.round()} cm'),
+              _sectionLabel(
+                  '${'Height (cm)'.tr()}: ${_height.round()} cm'),
               Slider(
                 value: _height,
                 min: 100,
@@ -152,33 +157,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onChanged: (v) => setState(() => _height = v),
               ),
 
-              _sectionLabel('Activity Level'),
+              _sectionLabel('Activity level'.tr()),
               SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'low', label: Text('Low')),
-                  ButtonSegment(value: 'moderate', label: Text('Mod.')),
-                  ButtonSegment(value: 'high', label: Text('High')),
-                  ButtonSegment(value: 'athlete', label: Text('Athlete')),
+                segments: [
+                  ButtonSegment(value: 'low', label: Text('Low'.tr())),
+                  ButtonSegment(
+                      value: 'moderate', label: Text('Moderate'.tr())),
+                  ButtonSegment(value: 'high', label: Text('High'.tr())),
+                  ButtonSegment(
+                      value: 'athlete', label: Text('Athlete'.tr())),
                 ],
                 selected: {_activity},
                 onSelectionChanged: (s) =>
                     setState(() => _activity = s.first),
               ),
 
-              _sectionLabel('Climate'),
+              _sectionLabel('Climate'.tr()),
               SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'cold', label: Text('Cold')),
-                  ButtonSegment(value: 'temperate', label: Text('Temp')),
-                  ButtonSegment(value: 'hot', label: Text('Hot')),
-                  ButtonSegment(value: 'tropical', label: Text('Trop.')),
+                segments: [
+                  ButtonSegment(value: 'cold', label: Text('Cold'.tr())),
+                  ButtonSegment(
+                      value: 'temperate', label: Text('Temperate'.tr())),
+                  ButtonSegment(value: 'hot', label: Text('Hot'.tr())),
+                  ButtonSegment(
+                      value: 'tropical', label: Text('Tropical'.tr())),
                 ],
                 selected: {_climate},
                 onSelectionChanged: (s) =>
                     setState(() => _climate = s.first),
               ),
 
-              _sectionLabel('Sleep: ${_sleepHours.round()} hours'),
+              _sectionLabel(
+                  '${'Sleep (h)'.tr()}: ${_sleepHours.round()}'),
               Slider(
                 value: _sleepHours,
                 min: 4,
@@ -187,14 +197,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onChanged: (v) => setState(() => _sleepHours = v),
               ),
 
-              _sectionLabel('Goal'),
+              _sectionLabel('Goal'.tr()),
               SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'norm', label: Text('Norm')),
+                segments: [
+                  ButtonSegment(value: 'norm', label: Text('Norm'.tr())),
                   ButtonSegment(
-                      value: 'wellbeing', label: Text('Wellbeing')),
-                  ButtonSegment(value: 'routine', label: Text('Routine')),
-                  ButtonSegment(value: 'weight', label: Text('Weight')),
+                      value: 'wellbeing',
+                      label: Text('Wellbeing'.tr())),
+                  ButtonSegment(
+                      value: 'routine', label: Text('Routine'.tr())),
+                  ButtonSegment(
+                      value: 'weight',
+                      label: Text('Lose weight'.tr())),
                 ],
                 selected: {_goal},
                 onSelectionChanged: (s) => setState(() => _goal = s.first),
@@ -214,8 +228,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         width: 20,
                         child: CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2))
-                    : const Text('Start Tracking 💧',
-                        style: TextStyle(fontSize: 16)),
+                    : Text('Get started'.tr(),
+                        style: const TextStyle(fontSize: 16)),
               ),
             ],
           ),

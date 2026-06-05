@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../services/api_service.dart';
 import '../../models/achievement.dart';
 import '../../theme.dart';
@@ -70,7 +71,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         .fold(0, (sum, a) => sum + a.points);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Awards')),
+      appBar: AppBar(title: Text('Achievements'.tr())),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -112,9 +113,12 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                             Text(
                               switch (_filter) {
                                 _Filter.unlocked =>
-                                  'No badges unlocked yet — start logging drinks!',
-                                _Filter.locked => 'All badges unlocked!',
-                                _Filter.all => 'No achievements available',
+                                  'No badges unlocked yet — start logging drinks!'
+                                      .tr(),
+                                _Filter.locked =>
+                                  'All badges unlocked!'.tr(),
+                                _Filter.all =>
+                                  'No achievements available'.tr(),
                               },
                               style: TextStyle(
                                   color: cs.onSurface
@@ -221,7 +225,7 @@ class _HeroStats extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$unlocked / $total badges',
+                  '$unlocked / $total ${'badges'.tr()}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -229,7 +233,7 @@ class _HeroStats extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '$pct% complete',
+                  '$pct% ${'complete'.tr()}',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.85),
                     fontSize: 13,
@@ -245,7 +249,7 @@ class _HeroStats extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      '⭐ $points points',
+                      '⭐ $points ${'points'.tr()}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -278,15 +282,17 @@ class _FilterTabs extends StatelessWidget {
       segments: [
         ButtonSegment(
           value: _Filter.all,
-          label: Text('All (${counts[_Filter.all] ?? 0})'),
+          label: Text('${'All'.tr()} (${counts[_Filter.all] ?? 0})'),
         ),
         ButtonSegment(
           value: _Filter.unlocked,
-          label: Text('Unlocked (${counts[_Filter.unlocked] ?? 0})'),
+          label:
+              Text('${'Unlocked'.tr()} (${counts[_Filter.unlocked] ?? 0})'),
         ),
         ButtonSegment(
           value: _Filter.locked,
-          label: Text('Locked (${counts[_Filter.locked] ?? 0})'),
+          label:
+              Text('${'Locked'.tr()} (${counts[_Filter.locked] ?? 0})'),
         ),
       ],
       selected: {current},
@@ -304,6 +310,10 @@ class _BadgeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final unlocked = achievement.unlocked;
+
+    // Strong amber gradient + white text for unlocked badges so they
+    // read well on every theme. Locked tiles use the surface
+    // container with subtle outline.
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
@@ -314,8 +324,8 @@ class _BadgeTile extends StatelessWidget {
           gradient: unlocked
               ? const LinearGradient(
                   colors: [
-                    Color(0xFFFFEFC1),
-                    Color(0xFFFFD8A8),
+                    Color(0xFFFF9933),
+                    Color(0xFFFF6B6B),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -324,16 +334,16 @@ class _BadgeTile extends StatelessWidget {
           color: unlocked ? null : cs.surfaceContainer,
           border: Border.all(
             color: unlocked
-                ? BrandColors.amber500.withValues(alpha: 0.4)
+                ? Colors.transparent
                 : cs.outline,
-            width: unlocked ? 1.5 : 1,
+            width: 1,
           ),
           boxShadow: unlocked
               ? [
                   BoxShadow(
-                    color: BrandColors.amber500.withValues(alpha: 0.25),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    color: const Color(0xFFFF9933).withValues(alpha: 0.4),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
                   ),
                 ]
               : null,
@@ -353,6 +363,16 @@ class _BadgeTile extends StatelessWidget {
                     color: unlocked
                         ? Colors.white
                         : cs.surfaceContainerHigh,
+                    boxShadow: unlocked
+                        ? [
+                            BoxShadow(
+                              color:
+                                  Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
                   ),
                   alignment: Alignment.center,
                   child: Text(
@@ -365,8 +385,8 @@ class _BadgeTile extends StatelessWidget {
                 ),
                 if (unlocked)
                   Positioned(
-                    right: 2,
-                    bottom: 2,
+                    right: 0,
+                    bottom: 0,
                     child: Container(
                       padding: const EdgeInsets.all(2),
                       decoration: const BoxDecoration(
@@ -387,10 +407,10 @@ class _BadgeTile extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11.5,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
                 color: unlocked
-                    ? const Color(0xFF7C4A03)
-                    : cs.onSurface.withValues(alpha: 0.7),
+                    ? Colors.white
+                    : cs.onSurface.withValues(alpha: 0.75),
               ),
             ),
             if (achievement.points > 0) ...[
@@ -399,8 +419,9 @@ class _BadgeTile extends StatelessWidget {
                 '⭐ ${achievement.points}',
                 style: TextStyle(
                   fontSize: 10,
+                  fontWeight: unlocked ? FontWeight.w600 : FontWeight.normal,
                   color: unlocked
-                      ? const Color(0xFF7C4A03)
+                      ? Colors.white.withValues(alpha: 0.95)
                       : cs.onSurface.withValues(alpha: 0.5),
                 ),
               ),
@@ -506,9 +527,7 @@ class _BadgeDetail extends StatelessWidget {
                       size: 16, color: BrandColors.emerald500),
                   const SizedBox(width: 6),
                   Text(
-                    achievement.unlockedAt != null
-                        ? 'Unlocked'
-                        : 'Unlocked',
+                    'Unlocked'.tr(),
                     style: const TextStyle(
                       color: BrandColors.emerald500,
                       fontWeight: FontWeight.w600,
@@ -532,9 +551,9 @@ class _BadgeDetail extends StatelessWidget {
                 children: [
                   const Icon(Icons.lock_outline, size: 16),
                   const SizedBox(width: 6),
-                  const Text(
-                    'Keep going to unlock',
-                    style: TextStyle(
+                  Text(
+                    'Keep going to unlock'.tr(),
+                    style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
@@ -544,7 +563,7 @@ class _BadgeDetail extends StatelessWidget {
             ),
           if (achievement.points > 0) ...[
             const SizedBox(height: 8),
-            Text('⭐ ${achievement.points} points',
+            Text('⭐ ${achievement.points} ${'points'.tr()}',
                 style: TextStyle(
                     color: cs.onSurface.withValues(alpha: 0.7),
                     fontSize: 12)),

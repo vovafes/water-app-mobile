@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
@@ -59,11 +60,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
     if (res['success'] == true) {
-      // Re-fetch so computed_target_ml stays accurate.
+      // If we just patched locale, refresh the User too so
+      // AuthProvider.user.locale is current.
+      if (patch.containsKey('locale')) {
+        await context.read<AuthProvider>().refreshUser();
+      }
       await _load();
     } else {
       final body = res['data'];
-      String msg = 'Could not save';
+      String msg = 'Could not save'.tr();
       if (body is Map) {
         if (body['message'] is String &&
             (body['message'] as String).isNotEmpty) {
@@ -82,15 +87,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _changeLanguage(String code) async {
+    final loc = Locale(code);
+    await context.setLocale(loc);
+    await _saveField({'locale': code});
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
     final theme = context.watch<ThemeProvider>();
+    final currentLocale = context.locale.languageCode;
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text('Profile'.tr()),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -107,26 +119,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   _Header(user: user),
                   const SizedBox(height: 20),
-                  _SectionTitle(title: 'Daily target'),
+                  _SectionTitle(title: 'Daily goal'.tr()),
                   Card(
                     child: Column(
                       children: [
                         _ReadTile(
                           icon: Icons.flag_outlined,
-                          label: 'Target',
+                          label: 'Daily goal'.tr(),
                           value: _goalLabel(),
                         ),
                         const Divider(height: 1),
                         ListTile(
                           leading: const Icon(Icons.tune,
                               color: BrandColors.sky500),
-                          title: const Text('Mode'),
+                          title: Text('Goal'.tr()),
                           trailing: SegmentedButton<String>(
-                            segments: const [
+                            segments: [
                               ButtonSegment(
-                                  value: 'auto', label: Text('Auto')),
+                                  value: 'auto',
+                                  label: Text('Auto'.tr())),
                               ButtonSegment(
-                                  value: 'manual', label: Text('Manual')),
+                                  value: 'manual',
+                                  label: Text('Manual'.tr())),
                             ],
                             selected: {
                               (_profile?['target_mode'] ?? 'auto').toString(),
@@ -140,7 +154,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const Divider(height: 1),
                           _NumberPickerTile(
                             icon: Icons.water_drop,
-                            label: 'Manual goal (ml)',
+                            label: 'Daily goal'.tr() + ' (ml)',
                             value: _intOf('manual_target_ml') ?? 2000,
                             min: 500,
                             max: 10000,
@@ -153,25 +167,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _SectionTitle(title: 'Body'),
+                  _SectionTitle(title: 'Body'.tr()),
                   Card(
                     child: Column(
                       children: [
                         _ChoiceTile(
                           icon: Icons.person_outline,
-                          label: 'Sex',
+                          label: 'Sex'.tr(),
                           value: _strOf('sex') ?? 'male',
-                          options: const {
-                            'male': 'Male',
-                            'female': 'Female',
-                            'other': 'Other',
+                          options: {
+                            'male': 'Male'.tr(),
+                            'female': 'Female'.tr(),
+                            'other': 'Other'.tr(),
                           },
                           onChanged: (v) => _saveField({'sex': v}),
                         ),
                         const Divider(height: 1),
                         _DateTile(
                           icon: Icons.cake_outlined,
-                          label: 'Birth date',
+                          label: 'Birth date'.tr(),
                           value: _profile?['birth_date']?.toString(),
                           onChanged: (d) => _saveField({
                             'birth_date': DateFormat('yyyy-MM-dd').format(d),
@@ -180,7 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const Divider(height: 1),
                         _NumberPickerTile(
                           icon: Icons.monitor_weight_outlined,
-                          label: 'Weight (kg)',
+                          label: 'Weight (kg)'.tr(),
                           value: _intOf('weight_kg') ?? 70,
                           min: 25,
                           max: 300,
@@ -190,7 +204,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const Divider(height: 1),
                         _NumberPickerTile(
                           icon: Icons.height,
-                          label: 'Height (cm)',
+                          label: 'Height (cm)'.tr(),
                           value: _intOf('height_cm') ?? 170,
                           min: 80,
                           max: 260,
@@ -201,19 +215,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _SectionTitle(title: 'Lifestyle'),
+                  _SectionTitle(title: 'Lifestyle'.tr()),
                   Card(
                     child: Column(
                       children: [
                         _ChoiceTile(
                           icon: Icons.directions_run,
-                          label: 'Activity',
+                          label: 'Activity'.tr(),
                           value: _strOf('activity_level') ?? 'moderate',
-                          options: const {
-                            'low': 'Low',
-                            'moderate': 'Moderate',
-                            'high': 'High',
-                            'athlete': 'Athlete',
+                          options: {
+                            'low': 'Low'.tr(),
+                            'moderate': 'Moderate'.tr(),
+                            'high': 'High'.tr(),
+                            'athlete': 'Athlete'.tr(),
                           },
                           onChanged: (v) =>
                               _saveField({'activity_level': v}),
@@ -221,13 +235,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const Divider(height: 1),
                         _ChoiceTile(
                           icon: Icons.thermostat_outlined,
-                          label: 'Climate',
+                          label: 'Climate'.tr(),
                           value: _strOf('climate_type') ?? 'temperate',
-                          options: const {
-                            'cold': 'Cold',
-                            'temperate': 'Temperate',
-                            'hot': 'Hot',
-                            'tropical': 'Tropical',
+                          options: {
+                            'cold': 'Cold'.tr(),
+                            'temperate': 'Temperate'.tr(),
+                            'hot': 'Hot'.tr(),
+                            'tropical': 'Tropical'.tr(),
                           },
                           onChanged: (v) =>
                               _saveField({'climate_type': v}),
@@ -235,7 +249,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const Divider(height: 1),
                         _NumberPickerTile(
                           icon: Icons.bedtime_outlined,
-                          label: 'Sleep (hours)',
+                          label: 'Sleep (h)'.tr(),
                           value: _intOf('sleep_hours') ?? 8,
                           min: 3,
                           max: 14,
@@ -245,13 +259,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const Divider(height: 1),
                         _ChoiceTile(
                           icon: Icons.track_changes_outlined,
-                          label: 'Goal',
+                          label: 'Goal'.tr(),
                           value: _strOf('goal') ?? 'norm',
-                          options: const {
-                            'norm': 'Norm',
-                            'wellbeing': 'Wellbeing',
-                            'routine': 'Routine',
-                            'weight': 'Weight',
+                          options: {
+                            'norm': 'Norm'.tr(),
+                            'wellbeing': 'Wellbeing'.tr(),
+                            'routine': 'Routine'.tr(),
+                            'weight': 'Lose weight'.tr(),
                           },
                           onChanged: (v) => _saveField({'goal': v}),
                         ),
@@ -259,37 +273,93 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _SectionTitle(title: 'Appearance'),
+                  _SectionTitle(title: 'Appearance'.tr()),
                   Card(
-                    child: ListTile(
-                      leading: Icon(
-                        switch (theme.mode) {
-                          ThemeMode.light => Icons.light_mode,
-                          ThemeMode.dark => Icons.dark_mode,
-                          ThemeMode.system => Icons.brightness_auto,
-                        },
-                        color: cs.primary,
-                      ),
-                      title: const Text('Theme'),
-                      trailing: SegmentedButton<ThemeMode>(
-                        segments: const [
-                          ButtonSegment(
-                            value: ThemeMode.light,
-                            icon: Icon(Icons.light_mode, size: 18),
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: Icon(
+                            switch (theme.mode) {
+                              ThemeMode.light => Icons.light_mode,
+                              ThemeMode.dark => Icons.dark_mode,
+                              ThemeMode.system => Icons.brightness_auto,
+                            },
+                            color: cs.primary,
                           ),
-                          ButtonSegment(
-                            value: ThemeMode.system,
-                            icon: Icon(Icons.brightness_auto, size: 18),
+                          title: Text('Theme'.tr()),
+                          trailing: SegmentedButton<ThemeMode>(
+                            segments: const [
+                              ButtonSegment(
+                                value: ThemeMode.light,
+                                icon:
+                                    Icon(Icons.light_mode, size: 18),
+                              ),
+                              ButtonSegment(
+                                value: ThemeMode.system,
+                                icon: Icon(
+                                    Icons.brightness_auto,
+                                    size: 18),
+                              ),
+                              ButtonSegment(
+                                value: ThemeMode.dark,
+                                icon: Icon(Icons.dark_mode, size: 18),
+                              ),
+                            ],
+                            selected: {theme.mode},
+                            onSelectionChanged: (s) => context
+                                .read<ThemeProvider>()
+                                .setMode(s.first),
                           ),
-                          ButtonSegment(
-                            value: ThemeMode.dark,
-                            icon: Icon(Icons.dark_mode, size: 18),
-                          ),
-                        ],
-                        selected: {theme.mode},
-                        onSelectionChanged: (s) =>
-                            context.read<ThemeProvider>().setMode(s.first),
-                      ),
+                        ),
+                        const Divider(height: 1),
+                        ListTile(
+                          leading: Icon(Icons.language,
+                              color: cs.primary),
+                          title: Text('Language'.tr()),
+                          subtitle: Text(_languageLabel(currentLocale)),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () async {
+                            final picked = await showModalBottomSheet<String>(
+                              context: context,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(20)),
+                              ),
+                              builder: (ctx) => SafeArea(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Text('Your language'.tr(),
+                                          style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight:
+                                                  FontWeight.w600)),
+                                    ),
+                                    for (final entry in _languages.entries)
+                                      ListTile(
+                                        title: Text(entry.value),
+                                        trailing: entry.key == currentLocale
+                                            ? const Icon(Icons.check,
+                                                color:
+                                                    BrandColors.sky500)
+                                            : null,
+                                        onTap: () =>
+                                            Navigator.pop(ctx, entry.key),
+                                      ),
+                                    const SizedBox(height: 8),
+                                  ],
+                                ),
+                              ),
+                            );
+                            if (picked != null &&
+                                picked != currentLocale) {
+                              await _changeLanguage(picked);
+                            }
+                          },
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -297,19 +367,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onPressed: () =>
                         context.read<AuthProvider>().logout(),
                     icon: const Icon(Icons.logout),
-                    label: const Text('Log out'),
+                    label: Text('Log out'.tr()),
                     style: FilledButton.styleFrom(
                       backgroundColor: BrandColors.rose500,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Profile photo uploads are not yet supported by the backend.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: 11,
-                        color: cs.onSurface.withValues(alpha: 0.5)),
                   ),
                   const SizedBox(height: 20),
                 ],
@@ -317,6 +379,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
     );
   }
+
+  static const _languages = <String, String>{
+    'en': 'English',
+    'de': 'Deutsch',
+    'ru': 'Русский',
+    'uk': 'Українська',
+  };
+
+  String _languageLabel(String code) => _languages[code] ?? code;
 
   String? _strOf(String key) {
     final v = _profile?[key];
@@ -334,9 +405,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final manual = _profile?['manual_target_ml'];
     final mode = _profile?['target_mode'];
     if (mode == 'manual' && manual is num) {
-      return '${manual.toInt()} ml (manual)';
+      return '${manual.toInt()} ml (${'Manual'.tr().toLowerCase()})';
     }
-    if (_computedTargetMl != null) return '$_computedTargetMl ml (auto)';
+    if (_computedTargetMl != null) {
+      return '$_computedTargetMl ml (${'Auto'.tr().toLowerCase()})';
+    }
     if (manual is num) return '${manual.toInt()} ml';
     return '—';
   }
@@ -552,12 +625,12 @@ class _NumberPickerTile extends StatelessWidget {
                       children: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Cancel'),
+                          child: Text('Cancel'.tr()),
                         ),
                         FilledButton(
                           onPressed: () =>
                               Navigator.pop(ctx, current),
-                          child: const Text('Save'),
+                          child: Text('Save'.tr()),
                         ),
                       ],
                     ),
@@ -592,9 +665,10 @@ class _DateTile extends StatelessWidget {
     return ListTile(
       leading: Icon(icon, color: BrandColors.sky500),
       title: Text(label),
-      subtitle: Text(parsed != null
-          ? DateFormat('yyyy-MM-dd').format(parsed)
-          : '—',
+      subtitle: Text(
+          parsed != null
+              ? DateFormat.yMMMd(context.locale.languageCode).format(parsed)
+              : '—',
           style: const TextStyle(fontWeight: FontWeight.w600)),
       trailing: const Icon(Icons.chevron_right),
       onTap: () async {
