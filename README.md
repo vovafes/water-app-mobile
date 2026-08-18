@@ -132,18 +132,19 @@ not produce.
    `android:usesCleartextTraffic="true"` because the dev backend is
    plain HTTP. Switch the backend to HTTPS and drop the flag before
    any real distribution.
-2. **No drink icon images.** The backend returns `icon_path` for each
-   drink (relative to `/storage`) but the mobile chip currently
-   renders an emoji keyed off the category slug. `Drink.iconUrl` is
-   already plumbed — wire it to a `NetworkImage` when the backend's
-   `storage:link` is in place.
-3. **No profile photo / avatar.** The Laravel `User` model has no
+2. **No profile photo / avatar.** The Laravel `User` model has no
    `avatar`, `profile_photo_path`, or similar column, and there is no
    upload endpoint. Adding this requires a backend migration +
    storage endpoint before the mobile side can support it.
-4. **`shared_preferences_android` deprecation warning** — uses the
+3. **`shared_preferences_android` deprecation warning** — uses the
    old Kotlin Gradle Plugin. Non-fatal, but future Flutter releases
    will reject it. Upgrade when its next major drops.
+4. **History drink icons are guessed from the display name.** The
+   `drink-logs`/dashboard API doesn't return the drink's `slug`, only
+   `drink_name`/`drink_color`/`icon_path`, so `history_screen.dart`'s
+   `_guessSlug()` pattern-matches on the name text to pick an icon.
+   Fragile for custom or localized drink names — the real fix is
+   adding `drink_slug` to those API responses on the backend.
 
 ## iOS
 
@@ -164,4 +165,4 @@ Before that works, you need to:
 
 ## License
 
-MIT.
+Proprietary — all rights reserved. See [LICENSE](LICENSE).
