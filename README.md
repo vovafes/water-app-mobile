@@ -8,6 +8,10 @@ history, achievements, and per-locale tips.
 iOS is partially scaffolded (`ios/` directory exists from
 `flutter create`) but unbuilt — see the bottom of this file.
 
+Going to production? [`DEPLOYMENT.md`](DEPLOYMENT.md) has the release
+checklist, the decisions that become irreversible at first publish, and
+the list of what is still outstanding.
+
 ## What's inside
 
 ```
@@ -30,6 +34,12 @@ State management is just `package:provider`. Persistence is
 `shared_preferences` for the auth token only — the backend is the
 source of truth for everything else.
 
+Because that token is the only thing on disk, Android's backup channels
+are both switched off (`allowBackup="false"` plus an empty
+`res/xml/data_extraction_rules.xml`, which is what covers device-to-device
+transfer on API 31+). A restored or transferred phone starts at the login
+screen instead of inheriting a bearer token it was never issued.
+
 ## Quick start (debug, on an emulator)
 
 ```bash
@@ -41,18 +51,54 @@ Defaults to `API_BASE_URL=http://10.0.2.2:8000`, which is the
 Android-emulator-friendly loopback to your machine. Boot the backend
 first (`docker compose up -d` in the water-app repo).
 
-## Release APK (real phone, same Wi-Fi)
+## LAN test on a real phone (profile build)
+
+Use this to try the app on your own phone against the dev backend,
+before anything goes to a store.
 
 1. **Backend reachable from the phone.** Find your machine's LAN IP
-   (`ipconfig` on Windows; on Linux/macOS `ip a` or `ifconfig`).
-   Make sure inbound TCP 8000 is allowed:
-   ```powershell
-   New-NetFirewallRule -DisplayName "Water App :8000" -Direction Inbound -LocalPort 8000 -Protocol TCP -Action Allow
-   ```
+   (`ipconfig` on Windows; on Linux/macOS `ip a` or `ifconfig`), then:
+
+   - Bind the server to every interface, not just loopback:
+     ```bash
+     php artisan serve --host=0.0.0.0 --port=8000
+     ```
+   - Set `APP_URL=http://<LAN_IP>:8000` in the backend's `.env` and run
+     `php artisan config:clear`. Avatar URLs are built server-side from
+     `APP_URL`, so leaving it as `http://localhost` ships the phone a URL
+     only your PC can resolve and every profile photo silently 404s.
+     (Drink icons and tip covers come from the app's own
+     `API_BASE_URL`, so they are unaffected.)
+   - Allow inbound TCP 8000 — this needs an **elevated** shell:
+     ```powershell
+     New-NetFirewallRule -DisplayName "Water App :8000" -Direction Inbound -LocalPort 8000 -Protocol TCP -Action Allow
+     ```
+
    Test from the phone's browser: `http://<LAN_IP>:8000/up` should
    answer.
 
-2. **Generate the release keystore** (once):
+2. **Build and install:**
+   ```bash
+   flutter build apk --profile --dart-define=API_BASE_URL=http://<LAN_IP>:8000
+   adb install -r build/app/outputs/flutter-apk/app-profile.apk
+   ```
+
+   That APK is ~100 MB because a profile build is unobfuscated and
+   bundles all three ABIs. Add `--target-platform android-arm64` to cut
+   it to roughly a third if you're sideloading over the network.
+
+   It has to be `--profile`, not `--release`. Cleartext HTTP is
+   permitted only in the debug and profile source sets
+   (`android/app/src/{debug,profile}/res/xml/network_security_config.xml`);
+   `src/main`, which is what release uses, sets
+   `cleartextTrafficPermitted="false"`. A release APK simply cannot
+   talk to `http://<LAN_IP>:8000` — every request fails with a cleartext
+   error. Point the backend at HTTPS if you need to smoke-test the
+   actual release artifact end to end.
+
+## Release APK (store / distribution)
+
+1. **Generate the release keystore** (once):
    ```powershell
    cd android
    .\make-keystore.ps1
@@ -70,19 +116,30 @@ first (`docker compose up -d` in the water-app repo).
    dart run flutter_launcher_icons
    ```
 
-3. **Build:**
+2. **Build:**
    ```bash
-   flutter build apk --release --dart-define=API_BASE_URL=http://<LAN_IP>:8000
+   flutter build apk --release --dart-define=API_BASE_URL=https://<your-host>
    ```
-   Output: `build/app/outputs/flutter-apk/app-release.apk` (~53 MB).
+   Output: `build/app/outputs/flutter-apk/app-release.apk` (~60 MB
+   universal; add `--target-platform android-arm64` for ~20 MB).
+   For Google Play upload `flutter build appbundle` instead — Play
+   requires an AAB, not an APK, and splits the ABIs itself so the
+   `--target-platform` trick is unnecessary there.
 
-4. **Install on the phone:**
+   The host must be HTTPS: release uses
+   `src/main/res/xml/network_security_config.xml`, which forbids
+   cleartext. Release is also the only build type that runs R8
+   (`isMinifyEnabled`/`isShrinkResources`), so anything reflection-based
+   needs a keep rule in `android/app/proguard-rules.pro` —
+   `flutter_local_notifications`' Gson models are already covered there.
+
+3. **Install on the phone:**
    ```bash
    adb install build/app/outputs/flutter-apk/app-release.apk
    ```
    Or copy the APK over and tap it.
 
-5. **Verify it's signed with the keystore you generated:**
+4. **Verify it's signed with the keystore you generated:**
    ```bash
    $env:LOCALAPPDATA\Android\Sdk\build-tools\<v>\apksigner.bat verify --print-certs build\app\outputs\flutter-apk\app-release.apk
    ```
@@ -101,6 +158,14 @@ no separate `/drinks/popular` call from the app.
 The list endpoint returns Laravel's paginate envelope; we read
 `body.data`.
 
+Every request carries `Accept-Language`, kept in sync with the app
+locale by `main.dart`. The backend's `SetLocale` middleware runs on the
+API group and prefers the *account's* stored locale, falling back to
+that header — so error text ("Неверный пароль.", validation messages)
+comes back in the user's language instead of English. Strings the
+mobile app never authors can't be translated client-side, which is why
+this matters.
+
 ## Onboarding requirement
 
 The backend won't compute `target_ml` until the user has POSTed to
@@ -118,7 +183,7 @@ before the dashboard.
 | Java | Temurin JDK 17 |
 | Gradle | 8.x (wrapper-managed) |
 | Android compileSdk | 36 |
-| Min SDK | whatever `flutter` resolves (currently 21) |
+| Min SDK | whatever `flutter` resolves (currently 24) |
 | Kotlin JVM target | 17 |
 | Core library desugaring | enabled (required by `flutter_local_notifications`) |
 
@@ -128,22 +193,33 @@ not produce.
 
 ## Known limitations
 
-1. **Cleartext HTTP only.** The AndroidManifest has
-   `android:usesCleartextTraffic="true"` because the dev backend is
-   plain HTTP. Switch the backend to HTTPS and drop the flag before
-   any real distribution.
-2. **No drink icon images.** The backend returns `icon_path` for each
-   drink (relative to `/storage`) but the mobile chip currently
-   renders an emoji keyed off the category slug. `Drink.iconUrl` is
-   already plumbed — wire it to a `NetworkImage` when the backend's
-   `storage:link` is in place.
-3. **No profile photo / avatar.** The Laravel `User` model has no
-   `avatar`, `profile_photo_path`, or similar column, and there is no
-   upload endpoint. Adding this requires a backend migration +
-   storage endpoint before the mobile side can support it.
-4. **`shared_preferences_android` deprecation warning** — uses the
-   old Kotlin Gradle Plugin. Non-fatal, but future Flutter releases
-   will reject it. Upgrade when its next major drops.
+Tracked with the rest of the release work in [`DEPLOYMENT.md`](DEPLOYMENT.md).
+
+1. **Release needs an HTTPS backend.** Cleartext is allowed only in
+   the debug and profile source sets; release forbids it. There is no
+   `usesCleartextTraffic` flag in the manifest to flip — the switch is
+   the per-source-set `network_security_config.xml`, and it is
+   deliberately strict for the artifact that ships.
+2. **No privacy policy is served.** `routes/web.php` in the backend has
+   no `/privacy` route, and Play will not accept a listing without a
+   public policy URL. The app collects email, birth date, weight and
+   height — the last three are health data, which also drives a stricter
+   Data Safety declaration. This is a hard submission blocker.
+3. **Password reset silently does nothing in production.** The backend's
+   `.env` still has `MAIL_MAILER=log`, so `POST /auth/forgot-password`
+   returns 200 and writes the mail to `storage/logs`. Point it at a real
+   transport before release.
+4. **Version is `1.0.0+1`.** Correct for the *first* upload — nothing has
+   shipped yet, and there are no tags. Bump `version:` in `pubspec.yaml`
+   before every upload after that; Play rejects a `versionCode` it has
+   already seen.
+5. **`applicationId` is `com.vovafes.water_app_mobile`.** Permanent from
+   the first publish onwards — changing it later means a new listing with
+   no install base. Worth a second look before the first upload.
+6. **Kotlin Gradle Plugin deprecation warning** — `shared_preferences_android`
+   and `flutter_timezone` still apply KGP instead of Flutter's built-in
+   Kotlin. Non-fatal today, but future Flutter releases will refuse to
+   build. Upgrade when their next majors drop.
 
 ## iOS
 
@@ -164,4 +240,4 @@ Before that works, you need to:
 
 ## License
 
-MIT.
+Proprietary — all rights reserved. See [LICENSE](LICENSE).
