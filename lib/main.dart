@@ -4,7 +4,9 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'providers/auth_provider.dart';
 import 'providers/dashboard_provider.dart';
+import 'providers/reminder_provider.dart';
 import 'providers/theme_provider.dart';
+import 'services/notification_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/achievements/achievements_screen.dart';
@@ -30,6 +32,7 @@ Future<void> main() async {
   // Loads month/weekday names for every locale intl knows about; needed
   // before DateFormat with a non-default locale can format anything.
   await initializeDateFormatting();
+  await NotificationService.init();
 
   runApp(
     EasyLocalization(
@@ -41,6 +44,7 @@ Future<void> main() async {
         providers: [
           ChangeNotifierProvider(create: (_) => AuthProvider()),
           ChangeNotifierProvider(create: (_) => DashboardProvider()),
+          ChangeNotifierProvider(create: (_) => ReminderProvider()),
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ],
         child: const WaterApp(),
