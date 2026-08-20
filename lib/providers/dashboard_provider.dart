@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/drink_log.dart';
@@ -49,7 +50,7 @@ class DashboardProvider extends ChangeNotifier {
     if (res['success'] == true && res['data'] is Map<String, dynamic>) {
       _applyDashboard(res['data'] as Map<String, dynamic>);
     } else {
-      _error = 'Failed to load dashboard';
+      _error = 'Failed to load dashboard'.tr();
     }
 
     // Also load the full active drink catalog so the dashboard picker
@@ -89,10 +90,7 @@ class DashboardProvider extends ChangeNotifier {
 
     final qv = d['quick_volumes'];
     if (qv is List && qv.isNotEmpty) {
-      _quickVolumes = qv
-          .whereType<num>()
-          .map((e) => e.toInt())
-          .toList();
+      _quickVolumes = qv.whereType<num>().map((e) => e.toInt()).toList();
     }
 
     final logs = d['recent_logs'];

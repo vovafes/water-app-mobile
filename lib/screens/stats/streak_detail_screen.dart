@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../services/api_service.dart';
@@ -53,8 +52,7 @@ class _StreakDetailScreenState extends State<StreakDetailScreen> {
     _load();
   }
 
-  static DateTime _stripTime(DateTime d) =>
-      DateTime(d.year, d.month, d.day);
+  static DateTime _stripTime(DateTime d) => DateTime(d.year, d.month, d.day);
 
   Future<void> _load() async {
     setState(() => _loading = true);
@@ -166,30 +164,30 @@ class _StreakDetailScreenState extends State<StreakDetailScreen> {
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 8),
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
                       child: TableCalendar<_DayStat>(
-                        firstDay:
-                            DateTime.now().subtract(const Duration(days: 365)),
-                        lastDay:
-                            DateTime.now().add(const Duration(days: 30)),
+                        firstDay: DateTime.now().subtract(
+                          const Duration(days: 365),
+                        ),
+                        lastDay: DateTime.now().add(const Duration(days: 30)),
                         focusedDay: _focusedDay,
-                        selectedDayPredicate: (d) =>
-                            isSameDay(d, _selectedDay),
+                        selectedDayPredicate: (d) => isSameDay(d, _selectedDay),
                         onDaySelected: (selected, focused) {
                           setState(() {
                             _selectedDay = _stripTime(selected);
                             _focusedDay = focused;
                           });
                         },
-                        onPageChanged: (focused) =>
-                            _focusedDay = focused,
+                        onPageChanged: (focused) => _focusedDay = focused,
                         eventLoader: (day) {
                           final s = _byDay[_stripTime(day)];
                           return s == null ? [] : [s];
                         },
                         startingDayOfWeek: StartingDayOfWeek.monday,
                         availableCalendarFormats: const {
-                          CalendarFormat.month: 'Month'
+                          CalendarFormat.month: 'Month',
                         },
                         headerStyle: HeaderStyle(
                           formatButtonVisible: false,
@@ -198,10 +196,14 @@ class _StreakDetailScreenState extends State<StreakDetailScreen> {
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
-                          leftChevronIcon: Icon(Icons.chevron_left,
-                              color: cs.onSurface),
-                          rightChevronIcon: Icon(Icons.chevron_right,
-                              color: cs.onSurface),
+                          leftChevronIcon: Icon(
+                            Icons.chevron_left,
+                            color: cs.onSurface,
+                          ),
+                          rightChevronIcon: Icon(
+                            Icons.chevron_right,
+                            color: cs.onSurface,
+                          ),
                         ),
                         calendarStyle: CalendarStyle(
                           outsideDaysVisible: false,
@@ -238,11 +240,15 @@ class _StreakDetailScreenState extends State<StreakDetailScreen> {
                                     color: BrandColors.amber500,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                        color: cs.surface, width: 1.5),
+                                      color: cs.surface,
+                                      width: 1.5,
+                                    ),
                                   ),
                                   alignment: Alignment.center,
-                                  child: const Text('🔥',
-                                      style: TextStyle(fontSize: 9)),
+                                  child: const Text(
+                                    '🔥',
+                                    style: TextStyle(fontSize: 9),
+                                  ),
                                 ),
                               );
                             }
@@ -266,8 +272,10 @@ class _StreakDetailScreenState extends State<StreakDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _DayDetail(stat: _byDay[_stripTime(_selectedDay)],
-                      date: _selectedDay),
+                  _DayDetail(
+                    stat: _byDay[_stripTime(_selectedDay)],
+                    date: _selectedDay,
+                  ),
                   const SizedBox(height: 16),
                   _Legend(),
                 ],
@@ -388,8 +396,7 @@ class _MiniStat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(14),
@@ -407,24 +414,26 @@ class _MiniStat extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text.rich(
-            TextSpan(children: [
-              TextSpan(
-                text: value,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: value,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-              TextSpan(
-                text: ' $suffix',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
+                TextSpan(
+                  text: ' $suffix',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
           ),
         ],
       ),
@@ -450,9 +459,10 @@ class _DayDetail extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  DateFormat('EEEE, MMM d',
-                          context.locale.languageCode)
-                      .format(date),
+                  DateFormat(
+                    'EEEE, MMM d',
+                    context.locale.languageCode,
+                  ).format(date),
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -461,7 +471,9 @@ class _DayDetail extends StatelessWidget {
                 if (stat?.completedGoal == true)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: BrandColors.amber500.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
@@ -535,7 +547,13 @@ class _DayDetail extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Target: ${stat!.targetMl} ml · ${stat!.hydrationPercent}% hydrated',
+                context.tr(
+                  'Target: {ml} ml · {percent}% hydrated',
+                  namedArgs: {
+                    'ml': '${stat!.targetMl}',
+                    'percent': '${stat!.hydrationPercent}',
+                  },
+                ),
                 style: TextStyle(
                   fontSize: 12,
                   color: cs.onSurface.withValues(alpha: 0.65),
@@ -583,24 +601,26 @@ class _StatBlock extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text.rich(
-            TextSpan(children: [
-              TextSpan(
-                text: value,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: value,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-              TextSpan(
-                text: ' $suffix',
-                style: TextStyle(
-                  color: color.withValues(alpha: 0.75),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
+                TextSpan(
+                  text: ' $suffix',
+                  style: TextStyle(
+                    color: color.withValues(alpha: 0.75),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
           ),
         ],
       ),

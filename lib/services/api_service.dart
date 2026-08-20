@@ -23,6 +23,12 @@ class ApiService {
   /// Public asset root, used to resolve drink icon_path / tip cover URLs.
   static String get assetBaseUrl => '$_envBaseUrl/storage';
 
+  /// Language sent as `Accept-Language`, kept in sync with the app locale
+  /// by the root widget. The backend localizes its own error messages
+  /// ("The password is incorrect.", validation text) off this, which is
+  /// the only signal it has before the bearer token is authenticated.
+  static String languageCode = 'en';
+
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token');
@@ -42,6 +48,7 @@ class ApiService {
     final headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'Accept-Language': languageCode,
     };
     if (auth) {
       final token = await getToken();
@@ -83,10 +90,35 @@ class ApiService {
     return _parse(res);
   }
 
-  static Future<Map<String, dynamic>> delete(String path) async {
+  /// Uploads a single file as `multipart/form-data` under [field].
+  static Future<Map<String, dynamic>> upload(
+    String path,
+    String field,
+    String filePath,
+  ) async {
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'));
+    // Content-Type is set by MultipartRequest, boundary and all.
+    request.headers['Accept'] = 'application/json';
+    request.headers['Accept-Language'] = languageCode;
+    final token = await getToken();
+    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(await http.MultipartFile.fromPath(field, filePath));
+
+    final streamed = await request.send();
+    return _parse(await http.Response.fromStream(streamed));
+  }
+
+  /// [body] is optional because most DELETEs identify the resource by URL,
+  /// but account deletion re-checks the current password and has to carry
+  /// it somewhere.
+  static Future<Map<String, dynamic>> delete(
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
     final res = await http.delete(
       Uri.parse('$baseUrl$path'),
       headers: await _headers(),
+      body: body == null ? null : jsonEncode(body),
     );
     return _parse(res);
   }

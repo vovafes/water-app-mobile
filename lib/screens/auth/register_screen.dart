@@ -29,20 +29,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [BrandColors.sky400, BrandColors.cyan500],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              // Center undoes the Column's stretch, which would otherwise
+              // override the square's own width.
+              Center(
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [BrandColors.sky400, BrandColors.cyan500],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  borderRadius: BorderRadius.circular(16),
+                  alignment: Alignment.center,
+                  child: const Text('💧', style: TextStyle(fontSize: 30)),
                 ),
-                alignment: Alignment.center,
-                child: const Text('💧',
-                    style: TextStyle(fontSize: 30)),
               ),
               const SizedBox(height: 24),
               if (auth.error != null)
@@ -53,12 +56,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     color: BrandColors.rose500.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color:
-                            BrandColors.rose500.withValues(alpha: 0.3)),
+                      color: BrandColors.rose500.withValues(alpha: 0.3),
+                    ),
                   ),
-                  child: Text(auth.error!,
-                      style:
-                          const TextStyle(color: BrandColors.rose500)),
+                  child: Text(
+                    auth.error!,
+                    style: const TextStyle(color: BrandColors.rose500),
+                  ),
                 ),
               TextField(
                 controller: _nameCtrl,
@@ -84,11 +88,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   labelText: 'Password'.tr(),
                   prefixIcon: const Icon(Icons.lock_outlined),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscure
-                        ? Icons.visibility
-                        : Icons.visibility_off),
-                    onPressed: () =>
-                        setState(() => _obscure = !_obscure),
+                    icon: Icon(
+                      _obscure ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () => setState(() => _obscure = !_obscure),
                   ),
                 ),
               ),
@@ -97,12 +100,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 onPressed: auth.loading
                     ? null
                     : () async {
-                        final ok =
-                            await context.read<AuthProvider>().register(
-                                  _nameCtrl.text.trim(),
-                                  _emailCtrl.text.trim(),
-                                  _passCtrl.text,
-                                );
+                        final ok = await context.read<AuthProvider>().register(
+                          _nameCtrl.text.trim(),
+                          _emailCtrl.text.trim(),
+                          _passCtrl.text,
+                        );
                         if (ok && context.mounted) Navigator.pop(context);
                       },
                 style: FilledButton.styleFrom(
@@ -113,9 +115,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
-                    : Text('Create account'.tr(),
-                        style: const TextStyle(fontSize: 16)),
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        'Create account'.tr(),
+                        style: const TextStyle(fontSize: 16),
+                      ),
               ),
             ],
           ),

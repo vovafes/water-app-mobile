@@ -22,7 +22,8 @@ class Drink {
   });
 
   /// Convenience: default volume to log when the user just taps the chip.
-  int get defaultVolumeMl => defaultVolumes.isNotEmpty ? defaultVolumes.first : 250;
+  int get defaultVolumeMl =>
+      defaultVolumes.isNotEmpty ? defaultVolumes.first : 250;
 
   /// Absolute URL for the icon image, or null if the drink has no icon.
   String? get iconUrl {
@@ -74,10 +75,7 @@ class Drink {
 
     final volumes = json['default_volumes'];
     final List<int> parsed = volumes is List
-        ? volumes
-            .map(_readInt)
-            .whereType<int>()
-            .toList()
+        ? volumes.map(_readInt).whereType<int>().toList()
         : <int>[];
 
     return Drink(
@@ -89,8 +87,7 @@ class Drink {
       categorySlug: readCategorySlug(json['category']),
       // hydration_multiplier is a decimal column → Eloquent serializes
       // it as a string ("1.00"), not a number. Be tolerant.
-      hydrationMultiplier:
-          _readDouble(json['hydration_multiplier']) ?? 1.0,
+      hydrationMultiplier: _readDouble(json['hydration_multiplier']) ?? 1.0,
       defaultVolumes: parsed.isNotEmpty ? parsed : <int>[200, 250, 330],
     );
   }

@@ -8,10 +8,10 @@ class AchievementsScreen extends StatefulWidget {
   const AchievementsScreen({super.key});
 
   @override
-  State<AchievementsScreen> createState() => _AchievementsScreenState();
+  State<AchievementsScreen> createState() => AchievementsScreenState();
 }
 
-class _AchievementsScreenState extends State<AchievementsScreen> {
+class AchievementsScreenState extends State<AchievementsScreen> {
   List<Achievement> _achievements = [];
   bool _loading = true;
   _Filter _filter = _Filter.all;
@@ -21,6 +21,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     super.initState();
     _load();
   }
+
+  Future<void> refresh() => _load();
 
   Future<void> _load() async {
     if (!mounted) return;
@@ -54,10 +56,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   List<Achievement> get _visible {
     return switch (_filter) {
       _Filter.all => _achievements,
-      _Filter.unlocked =>
-        _achievements.where((a) => a.unlocked).toList(),
-      _Filter.locked =>
-        _achievements.where((a) => !a.unlocked).toList(),
+      _Filter.unlocked => _achievements.where((a) => a.unlocked).toList(),
+      _Filter.locked => _achievements.where((a) => !a.unlocked).toList(),
     };
   }
 
@@ -101,28 +101,23 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                       child: Center(
                         child: Column(
                           children: [
-                            Text(
-                              switch (_filter) {
-                                _Filter.unlocked => '🔒',
-                                _Filter.locked => '🏆',
-                                _Filter.all => '🌟',
-                              },
-                              style: const TextStyle(fontSize: 48),
-                            ),
+                            Text(switch (_filter) {
+                              _Filter.unlocked => '🔒',
+                              _Filter.locked => '🏆',
+                              _Filter.all => '🌟',
+                            }, style: const TextStyle(fontSize: 48)),
                             const SizedBox(height: 8),
                             Text(
                               switch (_filter) {
                                 _Filter.unlocked =>
                                   'No badges unlocked yet — start logging drinks!'
                                       .tr(),
-                                _Filter.locked =>
-                                  'All badges unlocked!'.tr(),
-                                _Filter.all =>
-                                  'No achievements available'.tr(),
+                                _Filter.locked => 'All badges unlocked!'.tr(),
+                                _Filter.all => 'No achievements available'.tr(),
                               },
                               style: TextStyle(
-                                  color: cs.onSurface
-                                      .withValues(alpha: 0.6)),
+                                color: cs.onSurface.withValues(alpha: 0.6),
+                              ),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -135,16 +130,15 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                       physics: const NeverScrollableScrollPhysics(),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        childAspectRatio: 0.78,
-                      ),
+                            crossAxisCount: 3,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: 0.78,
+                          ),
                       itemCount: _visible.length,
                       itemBuilder: (context, i) => _BadgeTile(
                         achievement: _visible[i],
-                        onTap: () =>
-                            _showDetail(context, _visible[i]),
+                        onTap: () => _showDetail(context, _visible[i]),
                       ),
                     ),
                 ],
@@ -243,7 +237,9 @@ class _HeroStats extends StatelessWidget {
                 if (points > 0)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(20),
@@ -278,21 +274,27 @@ class _FilterTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Each segment gets a third of the width, which German blows past
+    // ("Freigeschaltet (0)" wraps onto two lines and desyncs the row
+    // heights). Scaling down beats wrapping or ellipsing the count away.
+    Widget segment(String label, int count) => FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text('$label ($count)', maxLines: 1, softWrap: false),
+    );
+
     return SegmentedButton<_Filter>(
       segments: [
         ButtonSegment(
           value: _Filter.all,
-          label: Text('${'All'.tr()} (${counts[_Filter.all] ?? 0})'),
+          label: segment('All'.tr(), counts[_Filter.all] ?? 0),
         ),
         ButtonSegment(
           value: _Filter.unlocked,
-          label:
-              Text('${'Unlocked'.tr()} (${counts[_Filter.unlocked] ?? 0})'),
+          label: segment('Unlocked'.tr(), counts[_Filter.unlocked] ?? 0),
         ),
         ButtonSegment(
           value: _Filter.locked,
-          label:
-              Text('${'Locked'.tr()} (${counts[_Filter.locked] ?? 0})'),
+          label: segment('Locked'.tr(), counts[_Filter.locked] ?? 0),
         ),
       ],
       selected: {current},
@@ -323,19 +325,14 @@ class _BadgeTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           gradient: unlocked
               ? const LinearGradient(
-                  colors: [
-                    Color(0xFFFF9933),
-                    Color(0xFFFF6B6B),
-                  ],
+                  colors: [Color(0xFFFF9933), Color(0xFFFF6B6B)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
               : null,
           color: unlocked ? null : cs.surfaceContainer,
           border: Border.all(
-            color: unlocked
-                ? Colors.transparent
-                : cs.outline,
+            color: unlocked ? Colors.transparent : cs.outline,
             width: 1,
           ),
           boxShadow: unlocked
@@ -360,14 +357,11 @@ class _BadgeTile extends StatelessWidget {
                   height: 56,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: unlocked
-                        ? Colors.white
-                        : cs.surfaceContainerHigh,
+                    color: unlocked ? Colors.white : cs.surfaceContainerHigh,
                     boxShadow: unlocked
                         ? [
                             BoxShadow(
-                              color:
-                                  Colors.black.withValues(alpha: 0.15),
+                              color: Colors.black.withValues(alpha: 0.15),
                               blurRadius: 6,
                               offset: const Offset(0, 2),
                             ),
@@ -393,15 +387,20 @@ class _BadgeTile extends StatelessWidget {
                         color: Colors.white,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.check_circle,
-                          color: BrandColors.emerald500, size: 16),
+                      child: const Icon(
+                        Icons.check_circle,
+                        color: BrandColors.emerald500,
+                        size: 16,
+                      ),
                     ),
                   ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
-              achievement.name,
+              // Seeded achievement names double as translation keys, same
+              // as the web's __($a->name).
+              context.tr(achievement.name),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
@@ -491,16 +490,13 @@ class _BadgeDetail extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            achievement.name,
+            context.tr(achievement.name),
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-            ),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
           Text(
-            achievement.description,
+            context.tr(achievement.description),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -511,8 +507,7 @@ class _BadgeDetail extends StatelessWidget {
           const SizedBox(height: 16),
           if (unlocked)
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: BrandColors.emerald500.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
@@ -523,8 +518,11 @@ class _BadgeDetail extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.check_circle,
-                      size: 16, color: BrandColors.emerald500),
+                  const Icon(
+                    Icons.check_circle,
+                    size: 16,
+                    color: BrandColors.emerald500,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     'Unlocked'.tr(),
@@ -539,8 +537,7 @@ class _BadgeDetail extends StatelessWidget {
             )
           else
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: cs.surfaceContainer,
                 borderRadius: BorderRadius.circular(20),
@@ -563,10 +560,13 @@ class _BadgeDetail extends StatelessWidget {
             ),
           if (achievement.points > 0) ...[
             const SizedBox(height: 8),
-            Text('⭐ ${achievement.points} ${'points'.tr()}',
-                style: TextStyle(
-                    color: cs.onSurface.withValues(alpha: 0.7),
-                    fontSize: 12)),
+            Text(
+              '⭐ ${achievement.points} ${'points'.tr()}',
+              style: TextStyle(
+                color: cs.onSurface.withValues(alpha: 0.7),
+                fontSize: 12,
+              ),
+            ),
           ],
         ],
       ),

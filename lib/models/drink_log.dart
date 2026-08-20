@@ -49,14 +49,12 @@ class DrinkLog {
 
     final volume = _readDouble(json['volume_ml'] ?? json['amount']) ?? 0;
     final hydration =
-        _readDouble(json['hydration_ml'] ?? json['water_equivalent']) ??
-            volume;
+        _readDouble(json['hydration_ml'] ?? json['water_equivalent']) ?? volume;
 
     final consumedRaw =
         json['consumed_at'] ?? json['logged_at'] ?? json['created_at'];
     final consumedAt = consumedRaw != null
-        ? DateTime.tryParse(consumedRaw.toString())?.toLocal() ??
-            DateTime.now()
+        ? DateTime.tryParse(consumedRaw.toString())?.toLocal() ?? DateTime.now()
         : DateTime.now();
 
     int? drinkId = _readInt(json['drink_id']);

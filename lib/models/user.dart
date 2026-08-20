@@ -6,6 +6,11 @@ class User {
   final String? timezone;
   final DateTime? onboardedAt;
 
+  /// Absolute URL served by the backend's `public` disk, or null when the
+  /// user has no photo. Changes on every upload, so it doubles as a
+  /// cache-buster.
+  final String? avatarUrl;
+
   const User({
     required this.id,
     required this.name,
@@ -13,6 +18,7 @@ class User {
     this.locale,
     this.timezone,
     this.onboardedAt,
+    this.avatarUrl,
   });
 
   bool get isOnboarded => onboardedAt != null;
@@ -30,6 +36,7 @@ class User {
       locale: json['locale']?.toString(),
       timezone: json['timezone']?.toString(),
       onboardedAt: parseDate(json['onboarded_at']),
+      avatarUrl: json['avatar_url']?.toString(),
     );
   }
 }

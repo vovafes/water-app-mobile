@@ -102,9 +102,7 @@ ThemeData buildLightTheme() {
       style: FilledButton.styleFrom(
         backgroundColor: BrandColors.sky500,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -127,6 +125,11 @@ ThemeData buildLightTheme() {
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
       indicatorColor: BrandColors.sky100,
+      // 12sp wraps "Achievements"/"Досягнення" onto a second line in a
+      // five-tab bar; 11sp keeps every locale on one line.
+      labelTextStyle: WidgetStatePropertyAll(
+        TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+      ),
     ),
     dividerTheme: const DividerThemeData(
       color: BrandColors.slate200,
@@ -191,9 +194,7 @@ ThemeData buildDarkTheme() {
       style: FilledButton.styleFrom(
         backgroundColor: BrandColors.sky500,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -216,6 +217,9 @@ ThemeData buildDarkTheme() {
       backgroundColor: BrandColors.slate900,
       surfaceTintColor: Colors.transparent,
       indicatorColor: Color(0xFF075985),
+      labelTextStyle: WidgetStatePropertyAll(
+        TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+      ),
     ),
     dividerTheme: const DividerThemeData(
       color: BrandColors.slate800,
@@ -226,19 +230,19 @@ ThemeData buildDarkTheme() {
 }
 
 TextTheme _baseTextTheme(Color base) => TextTheme(
-      displayLarge: TextStyle(color: base),
-      displayMedium: TextStyle(color: base),
-      displaySmall: TextStyle(color: base),
-      headlineLarge: TextStyle(color: base, fontWeight: FontWeight.w700),
-      headlineMedium: TextStyle(color: base, fontWeight: FontWeight.w700),
-      headlineSmall: TextStyle(color: base, fontWeight: FontWeight.w700),
-      titleLarge: TextStyle(color: base, fontWeight: FontWeight.w600),
-      titleMedium: TextStyle(color: base, fontWeight: FontWeight.w600),
-      titleSmall: TextStyle(color: base, fontWeight: FontWeight.w600),
-      bodyLarge: TextStyle(color: base),
-      bodyMedium: TextStyle(color: base),
-      bodySmall: TextStyle(color: base),
-      labelLarge: TextStyle(color: base),
-      labelMedium: TextStyle(color: base),
-      labelSmall: TextStyle(color: base),
-    );
+  displayLarge: TextStyle(color: base),
+  displayMedium: TextStyle(color: base),
+  displaySmall: TextStyle(color: base),
+  headlineLarge: TextStyle(color: base, fontWeight: FontWeight.w700),
+  headlineMedium: TextStyle(color: base, fontWeight: FontWeight.w700),
+  headlineSmall: TextStyle(color: base, fontWeight: FontWeight.w700),
+  titleLarge: TextStyle(color: base, fontWeight: FontWeight.w600),
+  titleMedium: TextStyle(color: base, fontWeight: FontWeight.w600),
+  titleSmall: TextStyle(color: base, fontWeight: FontWeight.w600),
+  bodyLarge: TextStyle(color: base),
+  bodyMedium: TextStyle(color: base),
+  bodySmall: TextStyle(color: base),
+  labelLarge: TextStyle(color: base),
+  labelMedium: TextStyle(color: base),
+  labelSmall: TextStyle(color: base),
+);

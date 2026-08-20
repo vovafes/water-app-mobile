@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
+import '../../theme.dart';
 
 /// First-run flow. POSTs to /profile/onboarding which is required before
 /// the backend will compute a real daily target. Mirrors the four-step
@@ -18,8 +18,11 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   String _sex = 'male';
-  DateTime _birthDate =
-      DateTime(DateTime.now().year - 30, DateTime.now().month, DateTime.now().day);
+  DateTime _birthDate = DateTime(
+    DateTime.now().year - 30,
+    DateTime.now().month,
+    DateTime.now().day,
+  );
   double _weight = 70;
   double _height = 175;
   String _activity = 'moderate';
@@ -56,7 +59,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       setState(() => _submitting = false);
     } else {
       final body = res['data'];
-      String msg = 'Onboarding failed';
+      String msg = 'Onboarding failed'.tr();
       if (body is Map) {
         if (body['message'] is String &&
             (body['message'] as String).isNotEmpty) {
@@ -87,9 +90,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Welcome back'.tr()),
+        title: Text('Tell us about yourself'.tr()),
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
@@ -100,7 +105,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             children: [
               Text(
                 'We use this to calculate your personal water goal.'.tr(),
-                style: const TextStyle(color: Colors.blueGrey),
+                style: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
               ),
               const SizedBox(height: 24),
 
@@ -109,23 +114,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50,
+                    color: BrandColors.rose500.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.shade200),
+                    border: Border.all(
+                      color: BrandColors.rose500.withValues(alpha: 0.3),
+                    ),
                   ),
-                  child: Text(_error!,
-                      style: TextStyle(color: Colors.red.shade700)),
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(color: BrandColors.rose500),
+                  ),
                 ),
 
               _sectionLabel('Sex'.tr()),
               SegmentedButton<String>(
                 segments: [
                   ButtonSegment(value: 'male', label: Text('Male'.tr())),
-                  ButtonSegment(
-                      value: 'female', label: Text('Female'.tr())),
-                  ButtonSegment(
-                      value: 'other', label: Text('Other'.tr())),
+                  ButtonSegment(value: 'female', label: Text('Female'.tr())),
+                  ButtonSegment(value: 'other', label: Text('Other'.tr())),
                 ],
+                // The leading checkmark steals enough width to wrap labels
+                // like "Moderate" onto two lines; the tint already signals
+                // which segment is selected.
+                showSelectedIcon: false,
                 selected: {_sex},
                 onSelectionChanged: (s) => setState(() => _sex = s.first),
               ),
@@ -137,8 +148,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 label: Text(DateFormat('yyyy-MM-dd').format(_birthDate)),
               ),
 
-              _sectionLabel(
-                  '${'Weight (kg)'.tr()}: ${_weight.round()} kg'),
+              _sectionLabel('${'Weight (kg)'.tr()}: ${_weight.round()} kg'),
               Slider(
                 value: _weight,
                 min: 30,
@@ -147,8 +157,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onChanged: (v) => setState(() => _weight = v),
               ),
 
-              _sectionLabel(
-                  '${'Height (cm)'.tr()}: ${_height.round()} cm'),
+              _sectionLabel('${'Height (cm)'.tr()}: ${_height.round()} cm'),
               Slider(
                 value: _height,
                 min: 100,
@@ -162,14 +171,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 segments: [
                   ButtonSegment(value: 'low', label: Text('Low'.tr())),
                   ButtonSegment(
-                      value: 'moderate', label: Text('Moderate'.tr())),
+                    value: 'moderate',
+                    label: Text('Moderate'.tr()),
+                  ),
                   ButtonSegment(value: 'high', label: Text('High'.tr())),
-                  ButtonSegment(
-                      value: 'athlete', label: Text('Athlete'.tr())),
+                  ButtonSegment(value: 'athlete', label: Text('Athlete'.tr())),
                 ],
+                showSelectedIcon: false,
                 selected: {_activity},
-                onSelectionChanged: (s) =>
-                    setState(() => _activity = s.first),
+                onSelectionChanged: (s) => setState(() => _activity = s.first),
               ),
 
               _sectionLabel('Climate'.tr()),
@@ -177,18 +187,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 segments: [
                   ButtonSegment(value: 'cold', label: Text('Cold'.tr())),
                   ButtonSegment(
-                      value: 'temperate', label: Text('Temperate'.tr())),
+                    value: 'temperate',
+                    label: Text('Temperate'.tr()),
+                  ),
                   ButtonSegment(value: 'hot', label: Text('Hot'.tr())),
                   ButtonSegment(
-                      value: 'tropical', label: Text('Tropical'.tr())),
+                    value: 'tropical',
+                    label: Text('Tropical'.tr()),
+                  ),
                 ],
+                showSelectedIcon: false,
                 selected: {_climate},
-                onSelectionChanged: (s) =>
-                    setState(() => _climate = s.first),
+                onSelectionChanged: (s) => setState(() => _climate = s.first),
               ),
 
-              _sectionLabel(
-                  '${'Sleep (h)'.tr()}: ${_sleepHours.round()}'),
+              _sectionLabel('${'Sleep (h)'.tr()}: ${_sleepHours.round()}'),
               Slider(
                 value: _sleepHours,
                 min: 4,
@@ -202,14 +215,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 segments: [
                   ButtonSegment(value: 'norm', label: Text('Norm'.tr())),
                   ButtonSegment(
-                      value: 'wellbeing',
-                      label: Text('Wellbeing'.tr())),
+                    value: 'wellbeing',
+                    label: Text('Wellbeing'.tr()),
+                  ),
+                  ButtonSegment(value: 'routine', label: Text('Routine'.tr())),
                   ButtonSegment(
-                      value: 'routine', label: Text('Routine'.tr())),
-                  ButtonSegment(
-                      value: 'weight',
-                      label: Text('Lose weight'.tr())),
+                    value: 'weight',
+                    label: Text('Lose weight'.tr()),
+                  ),
                 ],
+                showSelectedIcon: false,
                 selected: {_goal},
                 onSelectionChanged: (s) => setState(() => _goal = s.first),
               ),
@@ -220,16 +235,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPressed: _submitting ? null : _submit,
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: const Color(0xFF2196F3),
                 ),
                 child: _submitting
                     ? const SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
-                    : Text('Get started'.tr(),
-                        style: const TextStyle(fontSize: 16)),
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        'Get started'.tr(),
+                        style: const TextStyle(fontSize: 16),
+                      ),
               ),
             ],
           ),
@@ -239,9 +258,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _sectionLabel(String text) => Padding(
-        padding: const EdgeInsets.only(top: 20, bottom: 8),
-        child: Text(text,
-            style: const TextStyle(
-                fontWeight: FontWeight.w600, fontSize: 15)),
-      );
+    padding: const EdgeInsets.only(top: 20, bottom: 8),
+    child: Text(
+      text,
+      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+    ),
+  );
 }

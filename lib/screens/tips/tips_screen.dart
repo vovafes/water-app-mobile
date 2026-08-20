@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../services/api_service.dart';
 import '../../theme.dart';
@@ -11,7 +12,9 @@ class TipsScreen extends StatefulWidget {
 }
 
 class _TipsScreenState extends State<TipsScreen> {
-  List<_Tip> _tips = [];
+  // Raw articles, not resolved _Tip objects: the locale is applied in
+  // build() so switching language re-renders without a refetch.
+  List<Map<String, dynamic>> _raw = [];
   bool _loading = true;
   String? _error;
 
@@ -30,6 +33,7 @@ class _TipsScreenState extends State<TipsScreen> {
     // Backend returns title/summary/body as locale-keyed JSON; we
     // pick the right language client-side in _Tip.fromJson.
     final res = await ApiService.get('/tips');
+
     if (!mounted) return;
     if (res['success'] == true) {
       final body = res['data'];
@@ -43,18 +47,14 @@ class _TipsScreenState extends State<TipsScreen> {
       } else {
         rawList = const [];
       }
-      final locale = context.locale.languageCode;
       setState(() {
-        _tips = rawList
-            .whereType<Map<String, dynamic>>()
-            .map((j) => _Tip.fromJson(j, locale))
-            .toList();
+        _raw = rawList.whereType<Map<String, dynamic>>().toList();
         _loading = false;
       });
     } else {
       setState(() {
         _loading = false;
-        _error = 'Could not load tips';
+        _error = 'Could not load tips'.tr();
       });
     }
   }
@@ -62,26 +62,31 @@ class _TipsScreenState extends State<TipsScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final locale = context.locale.languageCode;
+    final tips = _raw.map((j) => _Tip.fromJson(j, locale)).toList();
     return Scaffold(
       appBar: AppBar(title: Text('Tips'.tr())),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _load,
-              child: _tips.isEmpty
+              child: tips.isEmpty
                   ? ListView(
                       children: [
                         const SizedBox(height: 120),
                         Center(
                           child: Column(
                             children: [
-                              const Text('💡',
-                                  style: TextStyle(fontSize: 48)),
+                              const Text('💡', style: TextStyle(fontSize: 48)),
                               const SizedBox(height: 8),
-                              Text(_error ?? 'No tips available in your language yet.'.tr(),
-                                  style: TextStyle(
-                                      color: cs.onSurface
-                                          .withValues(alpha: 0.6))),
+                              Text(
+                                _error ??
+                                    'No tips available in your language yet.'
+                                        .tr(),
+                                style: TextStyle(
+                                  color: cs.onSurface.withValues(alpha: 0.6),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -89,13 +94,12 @@ class _TipsScreenState extends State<TipsScreen> {
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                      itemCount: _tips.length,
+                      itemCount: tips.length,
                       itemBuilder: (context, i) => Padding(
                         padding: const EdgeInsets.only(bottom: 16),
                         child: _TipCard(
-                          tip: _tips[i],
-                          onTap: () =>
-                              _openReader(context, _tips[i]),
+                          tip: tips[i],
+                          onTap: () => _openReader(context, tips[i]),
                         ),
                       ),
                     ),
@@ -149,15 +153,15 @@ class _TipCard extends StatelessWidget {
                   ? Image.network(
                       tip.coverUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          const _CoverPlaceholder(),
+                      errorBuilder: (_, _, _) => const _CoverPlaceholder(),
                       loadingBuilder: (ctx, child, p) => p == null
                           ? child
                           : Container(
                               color: cs.surfaceContainerHigh,
                               alignment: Alignment.center,
                               child: const CircularProgressIndicator(
-                                  strokeWidth: 2),
+                                strokeWidth: 2,
+                              ),
                             ),
                     )
                   : const _CoverPlaceholder(),
@@ -172,22 +176,27 @@ class _TipCard extends StatelessWidget {
                       if (tip.category != null)
                         _CategoryChip(label: tip.category!),
                       const Spacer(),
-                      Text('Read more'.tr(),
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: cs.primary,
-                              fontWeight: FontWeight.w600)),
+                      Text(
+                        'Read more'.tr(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cs.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       const SizedBox(width: 2),
-                      Icon(Icons.chevron_right,
-                          size: 16, color: cs.primary),
+                      Icon(Icons.chevron_right, size: 16, color: cs.primary),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text(tip.title,
-                      style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          height: 1.25)),
+                  Text(
+                    tip.title,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      height: 1.25,
+                    ),
+                  ),
                   if (tip.summary != null) ...[
                     const SizedBox(height: 6),
                     Text(
@@ -244,7 +253,9 @@ class _CategoryChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        label,
+        // Categories come from the API, so this is a runtime key: an
+        // unknown one falls through to its own (English) name.
+        context.tr(label),
         style: TextStyle(
           color: cs.onPrimaryContainer,
           fontSize: 11,
@@ -270,7 +281,10 @@ class _TipReader extends StatelessWidget {
           SliverAppBar.large(
             expandedHeight: 240,
             pinned: true,
-            backgroundColor: cs.surface,
+            // Dark, so the white back arrow and light status-bar icons stay
+            // readable both over the cover and once the bar collapses.
+            backgroundColor: BrandColors.slate900,
+            systemOverlayStyle: SystemUiOverlayStyle.light,
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
@@ -279,8 +293,7 @@ class _TipReader extends StatelessWidget {
                     Image.network(
                       tip.coverUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          const _CoverPlaceholder(),
+                      errorBuilder: (_, _, _) => const _CoverPlaceholder(),
                     )
                   else
                     const _CoverPlaceholder(),
@@ -334,10 +347,7 @@ class _TipReader extends StatelessWidget {
                 const SizedBox(height: 20),
                 Text(
                   tip.body,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    height: 1.6,
-                  ),
+                  style: const TextStyle(fontSize: 15, height: 1.6),
                 ),
               ]),
             ),
@@ -370,18 +380,31 @@ class _Tip {
 
   factory _Tip.fromJson(Map<String, dynamic> json, String preferred) {
     return _Tip(
-      title: _readI18n(
-              json['title'] ?? json['localized_title'], preferred) ??
-          'Untitled',
+      title:
+          _readI18n(json['title'] ?? json['localized_title'], preferred) ??
+          'Untitled'.tr(),
       summary: _readI18n(
-          json['summary'] ?? json['localized_summary'], preferred),
-      body: _readI18n(
-              json['body'] ?? json['localized_body'] ?? json['content'],
-              preferred) ??
+        json['summary'] ?? json['localized_summary'],
+        preferred,
+      ),
+      body:
+          _readI18n(
+            json['body'] ?? json['localized_body'] ?? json['content'],
+            preferred,
+          ) ??
           '',
       coverPath: json['cover_image']?.toString(),
-      category: json['category']?.toString(),
+      category: _categoryKey(json['category']?.toString()),
     );
+  }
+
+  /// The API stores categories lower-cased ("routine", "science") while the
+  /// locale files key them capitalised, mirroring the web's
+  /// `__(ucfirst($a->category))`. Without this the chip renders the raw
+  /// English slug in every language.
+  static String? _categoryKey(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    return raw[0].toUpperCase() + raw.substring(1);
   }
 
   /// title/summary/body are JSON keyed by locale (en/de/ru/uk). Prefer

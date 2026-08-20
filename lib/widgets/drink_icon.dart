@@ -23,8 +23,10 @@ class DrinkIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final body = _bodyFor(slug);
-    final hex = '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}';
-    final svg = '''
+    final hex =
+        '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}';
+    final svg =
+        '''
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="$size" height="$size" color="$hex">
 $body
 </svg>
@@ -206,10 +208,9 @@ class DrinkColors {
     // Readable text:
     //   light theme → push down to lightness 0.25-0.40
     //   dark  theme → lift up to lightness 0.55-0.75
-    final text = (isLight
-            ? railHsl.withLightness(0.30)
-            : railHsl.withLightness(0.70))
-        .toColor();
+    final text =
+        (isLight ? railHsl.withLightness(0.30) : railHsl.withLightness(0.70))
+            .toColor();
 
     // Chip background — a faint wash of the text colour.
     final chipBg = text.withValues(alpha: isLight ? 0.12 : 0.22);
@@ -218,11 +219,6 @@ class DrinkColors {
     // foreground isn't too faint.
     final iconBg = text.withValues(alpha: isLight ? 0.15 : 0.26);
 
-    return DrinkColors(
-      rail: rail,
-      text: text,
-      chipBg: chipBg,
-      iconBg: iconBg,
-    );
+    return DrinkColors(rail: rail, text: text, chipBg: chipBg, iconBg: iconBg);
   }
 }

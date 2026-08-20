@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/reminder_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../theme.dart';
+import '../reminders/reminders_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -87,10 +90,99 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _logout() async {
+    // Cancel scheduled notifications first so the next account on this
+    // device does not inherit the previous user's reminders.
+    await context.read<ReminderProvider>().clear();
+    if (!mounted) return;
+    await context.read<AuthProvider>().logout();
+  }
+
+  /// Google Play requires this path to exist in-app for any app that lets
+  /// users register in-app. Deletion is irreversible and cascades over
+  /// every log, so it asks for the password rather than a bare "are you
+  /// sure" — the same bar the web's delete-user form sets.
+  Future<void> _deleteAccount() async {
+    final controller = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete account'.tr()),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // One literal, deliberately not split across lines: the i18n
+            // guard test reads the key straight out of the source, and
+            // adjacent-string concatenation would hide half of it.
+            Text(
+              'This permanently deletes your account and all of your data. This cannot be undone.'
+                  .tr(),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              obscureText: true,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Password'.tr(),
+                border: const OutlineInputBorder(),
+              ),
+              onSubmitted: (_) => Navigator.pop(ctx, true),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel'.tr()),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: BrandColors.rose500),
+            child: Text('Delete account'.tr()),
+          ),
+        ],
+      ),
+    );
+
+    final password = controller.text;
+    controller.dispose();
+    if (confirmed != true || password.isEmpty || !mounted) return;
+
+    // Drop the local notification queue before the account goes away, or
+    // the phone keeps nagging on behalf of a user that no longer exists.
+    await context.read<ReminderProvider>().clear();
+    if (!mounted) return;
+
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.deleteAccount(password);
+    if (!mounted) return;
+
+    // On success main.dart routes back to login on its own, because the
+    // provider has already cleared the user.
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.error ?? 'Could not delete your account'.tr()),
+          backgroundColor: BrandColors.rose500,
+        ),
+      );
+    }
+  }
+
   Future<void> _changeLanguage(String code) async {
     final loc = Locale(code);
     await context.setLocale(loc);
+    if (!mounted) return;
     await _saveField({'locale': code});
+    if (!mounted) return;
+    // Notification bodies are baked in at schedule time, so everything
+    // already queued would keep nagging in the old language. Reload from
+    // the API (rather than resyncing the in-memory list, which is empty
+    // until the Reminders screen has been opened at least once) so the
+    // whole set is rebuilt with the new locale's copy.
+    await context.read<ReminderProvider>().load();
   }
 
   @override
@@ -104,10 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: Text('Profile'.tr()),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _load,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
         ],
       ),
       body: _loading
@@ -130,17 +219,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const Divider(height: 1),
                         ListTile(
-                          leading: const Icon(Icons.tune,
-                              color: BrandColors.sky500),
+                          leading: const Icon(
+                            Icons.tune,
+                            color: BrandColors.sky500,
+                          ),
                           title: Text('Goal'.tr()),
                           trailing: SegmentedButton<String>(
                             segments: [
                               ButtonSegment(
-                                  value: 'auto',
-                                  label: Text('Auto'.tr())),
+                                value: 'auto',
+                                label: Text('Auto'.tr()),
+                              ),
                               ButtonSegment(
-                                  value: 'manual',
-                                  label: Text('Manual'.tr())),
+                                value: 'manual',
+                                label: Text('Manual'.tr()),
+                              ),
                             ],
                             selected: {
                               (_profile?['target_mode'] ?? 'auto').toString(),
@@ -154,7 +247,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const Divider(height: 1),
                           _NumberPickerTile(
                             icon: Icons.water_drop,
-                            label: 'Daily goal'.tr() + ' (ml)',
+                            label: '${'Daily goal'.tr()} (ml)',
                             value: _intOf('manual_target_ml') ?? 2000,
                             min: 500,
                             max: 10000,
@@ -229,8 +322,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             'high': 'High'.tr(),
                             'athlete': 'Athlete'.tr(),
                           },
-                          onChanged: (v) =>
-                              _saveField({'activity_level': v}),
+                          onChanged: (v) => _saveField({'activity_level': v}),
                         ),
                         const Divider(height: 1),
                         _ChoiceTile(
@@ -243,8 +335,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             'hot': 'Hot'.tr(),
                             'tropical': 'Tropical'.tr(),
                           },
-                          onChanged: (v) =>
-                              _saveField({'climate_type': v}),
+                          onChanged: (v) => _saveField({'climate_type': v}),
                         ),
                         const Divider(height: 1),
                         _NumberPickerTile(
@@ -273,32 +364,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
+                  _SectionTitle(title: 'Notifications'.tr()),
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.notifications_active_outlined,
+                        color: BrandColors.sky500,
+                      ),
+                      title: Text('Reminders'.tr()),
+                      subtitle: Text('Nudges to drink through the day'.tr()),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const RemindersScreen(),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   _SectionTitle(title: 'Appearance'.tr()),
                   Card(
                     child: Column(
                       children: [
                         ListTile(
-                          leading: Icon(
-                            switch (theme.mode) {
-                              ThemeMode.light => Icons.light_mode,
-                              ThemeMode.dark => Icons.dark_mode,
-                              ThemeMode.system => Icons.brightness_auto,
-                            },
-                            color: cs.primary,
-                          ),
+                          leading: Icon(switch (theme.mode) {
+                            ThemeMode.light => Icons.light_mode,
+                            ThemeMode.dark => Icons.dark_mode,
+                            ThemeMode.system => Icons.brightness_auto,
+                          }, color: cs.primary),
                           title: Text('Theme'.tr()),
                           trailing: SegmentedButton<ThemeMode>(
                             segments: const [
                               ButtonSegment(
                                 value: ThemeMode.light,
-                                icon:
-                                    Icon(Icons.light_mode, size: 18),
+                                icon: Icon(Icons.light_mode, size: 18),
                               ),
                               ButtonSegment(
                                 value: ThemeMode.system,
-                                icon: Icon(
-                                    Icons.brightness_auto,
-                                    size: 18),
+                                icon: Icon(Icons.brightness_auto, size: 18),
                               ),
                               ButtonSegment(
                                 value: ThemeMode.dark,
@@ -306,15 +409,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ],
                             selected: {theme.mode},
-                            onSelectionChanged: (s) => context
-                                .read<ThemeProvider>()
-                                .setMode(s.first),
+                            onSelectionChanged: (s) =>
+                                context.read<ThemeProvider>().setMode(s.first),
                           ),
                         ),
                         const Divider(height: 1),
                         ListTile(
-                          leading: Icon(Icons.language,
-                              color: cs.primary),
+                          leading: Icon(Icons.language, color: cs.primary),
                           title: Text('Language'.tr()),
                           subtitle: Text(_languageLabel(currentLocale)),
                           trailing: const Icon(Icons.chevron_right),
@@ -323,7 +424,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               context: context,
                               shape: const RoundedRectangleBorder(
                                 borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(20)),
+                                  top: Radius.circular(20),
+                                ),
                               ),
                               builder: (ctx) => SafeArea(
                                 child: Column(
@@ -331,19 +433,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   children: [
                                     Padding(
                                       padding: const EdgeInsets.all(16),
-                                      child: Text('Your language'.tr(),
-                                          style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight:
-                                                  FontWeight.w600)),
+                                      child: Text(
+                                        'Your language'.tr(),
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                     ),
                                     for (final entry in _languages.entries)
                                       ListTile(
                                         title: Text(entry.value),
                                         trailing: entry.key == currentLocale
-                                            ? const Icon(Icons.check,
-                                                color:
-                                                    BrandColors.sky500)
+                                            ? const Icon(
+                                                Icons.check,
+                                                color: BrandColors.sky500,
+                                              )
                                             : null,
                                         onTap: () =>
                                             Navigator.pop(ctx, entry.key),
@@ -353,8 +458,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ),
                             );
-                            if (picked != null &&
-                                picked != currentLocale) {
+                            if (picked != null && picked != currentLocale) {
                               await _changeLanguage(picked);
                             }
                           },
@@ -364,13 +468,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 24),
                   FilledButton.icon(
-                    onPressed: () =>
-                        context.read<AuthProvider>().logout(),
+                    onPressed: _logout,
                     icon: const Icon(Icons.logout),
                     label: Text('Log out'.tr()),
                     style: FilledButton.styleFrom(
                       backgroundColor: BrandColors.rose500,
                       padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: _deleteAccount,
+                    icon: const Icon(Icons.delete_forever_outlined, size: 20),
+                    label: Text('Delete account'.tr()),
+                    style: TextButton.styleFrom(
+                      foregroundColor: BrandColors.rose500,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -415,47 +527,186 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class _Header extends StatelessWidget {
-  final dynamic user;
+class _Header extends StatefulWidget {
+  final User? user;
   const _Header({required this.user});
 
   @override
+  State<_Header> createState() => _HeaderState();
+}
+
+class _HeaderState extends State<_Header> {
+  bool _busy = false;
+
+  Future<void> _pickPhoto() async {
+    if (_busy) return;
+
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Change photo'.tr(),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.photo_camera_outlined,
+                color: BrandColors.sky500,
+              ),
+              title: Text('Take a photo'.tr()),
+              onTap: () => Navigator.pop(ctx, 'camera'),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.photo_library_outlined,
+                color: BrandColors.sky500,
+              ),
+              title: Text('Choose from gallery'.tr()),
+              onTap: () => Navigator.pop(ctx, 'gallery'),
+            ),
+            if (widget.user?.avatarUrl != null)
+              ListTile(
+                leading: const Icon(
+                  Icons.delete_outline,
+                  color: BrandColors.rose500,
+                ),
+                title: Text('Remove photo'.tr()),
+                onTap: () => Navigator.pop(ctx, 'remove'),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (action == null || !mounted) return;
+
+    String? path;
+    if (action != 'remove') {
+      final picked = await ImagePicker().pickImage(
+        source: action == 'camera' ? ImageSource.camera : ImageSource.gallery,
+        // The backend re-crops to 512², so anything larger is wasted upload.
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 90,
+      );
+      if (picked == null) return;
+      path = picked.path;
+    }
+    if (!mounted) return;
+
+    setState(() => _busy = true);
+    final auth = context.read<AuthProvider>();
+    final ok = path == null
+        ? await auth.removeAvatar()
+        : await auth.uploadAvatar(path);
+    if (!mounted) return;
+    setState(() => _busy = false);
+
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.error ?? 'Could not update your photo'.tr()),
+          backgroundColor: BrandColors.rose500,
+        ),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final user = widget.user;
+    final avatarUrl = user?.avatarUrl;
+
     return Center(
       child: Column(
         children: [
-          Container(
-            width: 84,
-            height: 84,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [BrandColors.sky400, BrandColors.cyan500],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              (user?.name?.toString().isNotEmpty == true)
-                  ? user!.name[0].toString().toUpperCase()
-                  : '?',
-              style: const TextStyle(
-                  fontSize: 36,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700),
+          GestureDetector(
+            onTap: _pickPhoto,
+            child: Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                Container(
+                  width: 84,
+                  height: 84,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [BrandColors.sky400, BrandColors.cyan500],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                    image: avatarUrl != null
+                        ? DecorationImage(
+                            image: NetworkImage(avatarUrl),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  alignment: Alignment.center,
+                  child: avatarUrl != null
+                      ? null
+                      : Text(
+                          (user?.name.isNotEmpty == true)
+                              ? user!.name[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            fontSize: 36,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                ),
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: _busy
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(
+                          Icons.photo_camera_outlined,
+                          size: 16,
+                          color: BrandColors.sky500,
+                        ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 10),
-          Text(user?.name?.toString() ?? '',
-              style: const TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w700)),
-          Text(user?.email?.toString() ?? '',
-              style: TextStyle(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.6))),
+          Text(
+            user?.name ?? '',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
+          Text(
+            user?.email ?? '',
+            style: TextStyle(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
         ],
       ),
     );
@@ -468,33 +719,35 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(left: 4, bottom: 8),
-        child: Text(title,
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withValues(alpha: 0.6))),
-      );
+    padding: const EdgeInsets.only(left: 4, bottom: 8),
+    child: Text(
+      title,
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.5,
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+      ),
+    ),
+  );
 }
 
 class _ReadTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _ReadTile(
-      {required this.icon, required this.label, required this.value});
+  const _ReadTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) => ListTile(
-        leading: Icon(icon, color: BrandColors.sky500),
-        title: Text(label),
-        trailing: Text(value,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
-      );
+    leading: Icon(icon, color: BrandColors.sky500),
+    title: Text(label),
+    trailing: Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+  );
 }
 
 class _ChoiceTile extends StatelessWidget {
@@ -517,15 +770,16 @@ class _ChoiceTile extends StatelessWidget {
     return ListTile(
       leading: Icon(icon, color: BrandColors.sky500),
       title: Text(label),
-      subtitle: Text(options[value] ?? value,
-          style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(
+        options[value] ?? value,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
       trailing: const Icon(Icons.chevron_right),
       onTap: () async {
         final picked = await showModalBottomSheet<String>(
           context: context,
           shape: const RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           builder: (ctx) => SafeArea(
             child: Column(
@@ -533,18 +787,23 @@ class _ChoiceTile extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text(label,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w600)),
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-                ...options.entries.map((e) => ListTile(
-                      title: Text(e.value),
-                      trailing: e.key == value
-                          ? const Icon(Icons.check,
-                              color: BrandColors.sky500)
-                          : null,
-                      onTap: () => Navigator.pop(ctx, e.key),
-                    )),
+                ...options.entries.map(
+                  (e) => ListTile(
+                    title: Text(e.value),
+                    trailing: e.key == value
+                        ? const Icon(Icons.check, color: BrandColors.sky500)
+                        : null,
+                    onTap: () => Navigator.pop(ctx, e.key),
+                  ),
+                ),
                 const SizedBox(height: 8),
               ],
             ),
@@ -580,8 +839,10 @@ class _NumberPickerTile extends StatelessWidget {
     return ListTile(
       leading: Icon(icon, color: BrandColors.sky500),
       title: Text(label),
-      subtitle: Text('$value',
-          style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(
+        '$value',
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
       trailing: const Icon(Icons.chevron_right),
       onTap: () async {
         int current = value;
@@ -589,8 +850,7 @@ class _NumberPickerTile extends StatelessWidget {
           context: context,
           isScrollControlled: true,
           shape: const RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           builder: (ctx) => StatefulBuilder(
             builder: (ctx, setSt) => SafeArea(
@@ -604,21 +864,27 @@ class _NumberPickerTile extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(label,
-                        style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600)),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    Text('$current',
-                        style: const TextStyle(
-                            fontSize: 36, fontWeight: FontWeight.w700)),
+                    Text(
+                      '$current',
+                      style: const TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     Slider(
                       value: current.toDouble(),
                       min: min.toDouble(),
                       max: max.toDouble(),
                       divisions: ((max - min) / step).round(),
-                      onChanged: (v) =>
-                          setSt(() => current = v.round()),
+                      onChanged: (v) => setSt(() => current = v.round()),
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -628,8 +894,7 @@ class _NumberPickerTile extends StatelessWidget {
                           child: Text('Cancel'.tr()),
                         ),
                         FilledButton(
-                          onPressed: () =>
-                              Navigator.pop(ctx, current),
+                          onPressed: () => Navigator.pop(ctx, current),
                           child: Text('Save'.tr()),
                         ),
                       ],
@@ -666,10 +931,11 @@ class _DateTile extends StatelessWidget {
       leading: Icon(icon, color: BrandColors.sky500),
       title: Text(label),
       subtitle: Text(
-          parsed != null
-              ? DateFormat.yMMMd(context.locale.languageCode).format(parsed)
-              : '—',
-          style: const TextStyle(fontWeight: FontWeight.w600)),
+        parsed != null
+            ? DateFormat.yMMMd(context.locale.languageCode).format(parsed)
+            : '—',
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
       trailing: const Icon(Icons.chevron_right),
       onTap: () async {
         final now = DateTime.now();

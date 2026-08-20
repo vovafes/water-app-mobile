@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../services/api_service.dart';
 import '../../models/drink_log.dart';
@@ -20,6 +19,10 @@ class HistoryScreenState extends State<HistoryScreen> {
   // Date range filter — null on both means "all" (last 50 entries).
   DateTime? _from;
   DateTime? _to;
+
+  // Which preset chip to highlight. 'custom' once the range comes from the
+  // picker, since that never matches a preset exactly.
+  String _activeRange = 'all';
 
   @override
   void initState() {
@@ -83,12 +86,13 @@ class HistoryScreenState extends State<HistoryScreen> {
       initialDateRange: _from != null && _to != null
           ? DateTimeRange(start: _from!, end: _to!)
           : null,
-      saveText: 'Apply',
+      saveText: 'Apply'.tr(),
     );
     if (result != null) {
       setState(() {
         _from = result.start;
         _to = result.end;
+        _activeRange = 'custom';
       });
       _load();
     }
@@ -96,6 +100,7 @@ class HistoryScreenState extends State<HistoryScreen> {
 
   void _setQuickRange(int? days) {
     setState(() {
+      _activeRange = days?.toString() ?? 'all';
       if (days == null) {
         _from = null;
         _to = null;
@@ -140,7 +145,7 @@ class HistoryScreenState extends State<HistoryScreen> {
         children: [
           _FilterBar(
             label: _rangeLabel(localeCode),
-            isAllTime: _from == null && _to == null,
+            active: _activeRange,
             onClear: _from != null ? () => _setQuickRange(null) : null,
             onQuick: _setQuickRange,
             onPickRange: _pickRange,
@@ -149,44 +154,45 @@ class HistoryScreenState extends State<HistoryScreen> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _logs.isEmpty
-                    ? RefreshIndicator(
-                        onRefresh: _load,
-                        child: ListView(
-                          children: [
-                            const SizedBox(height: 120),
-                            Center(
-                              child: Column(
-                                children: [
-                                  const Text('🗒️',
-                                      style: TextStyle(fontSize: 48)),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'No drinks in this range'.tr(),
-                                    style: TextStyle(
-                                        color: cs.onSurface
-                                            .withValues(alpha: 0.6)),
-                                  ),
-                                ],
+                ? RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView(
+                      children: [
+                        const SizedBox(height: 120),
+                        Center(
+                          child: Column(
+                            children: [
+                              const Text('🗒️', style: TextStyle(fontSize: 48)),
+                              const SizedBox(height: 8),
+                              Text(
+                                'No drinks in this range'.tr(),
+                                style: TextStyle(
+                                  color: cs.onSurface.withValues(alpha: 0.6),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _load,
-                        child: ListView(
-                          padding: const EdgeInsets.all(16),
-                          children: grouped.entries.map((entry) {
-                            final total = entry.value
-                                .fold(0.0, (s, l) => s + l.volumeMl);
-                            return _DayBlock(
-                              label: entry.key,
-                              total: total.toInt(),
-                              logs: entry.value,
-                            );
-                          }).toList(),
-                        ),
-                      ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: grouped.entries.map((entry) {
+                        final total = entry.value.fold(
+                          0.0,
+                          (s, l) => s + l.volumeMl,
+                        );
+                        return _DayBlock(
+                          label: entry.key,
+                          total: total.toInt(),
+                          logs: entry.value,
+                        );
+                      }).toList(),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -196,14 +202,14 @@ class HistoryScreenState extends State<HistoryScreen> {
 
 class _FilterBar extends StatelessWidget {
   final String label;
-  final bool isAllTime;
+  final String active;
   final VoidCallback? onClear;
   final ValueChanged<int?> onQuick;
   final VoidCallback onPickRange;
 
   const _FilterBar({
     required this.label,
-    required this.isAllTime,
+    required this.active,
     required this.onClear,
     required this.onQuick,
     required this.onPickRange,
@@ -220,20 +226,18 @@ class _FilterBar extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.calendar_month_outlined,
-                  size: 18, color: cs.primary),
+              Icon(Icons.calendar_month_outlined, size: 18, color: cs.primary),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: const TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 13),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
               ),
               const Spacer(),
               if (onClear != null)
-                TextButton(
-                  onPressed: onClear,
-                  child: Text('Clear'.tr()),
-                ),
+                TextButton(onPressed: onClear, child: Text('Clear'.tr())),
             ],
           ),
           const SizedBox(height: 4),
@@ -241,18 +245,20 @@ class _FilterBar extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _quickChip('Today'.tr(), () => onQuick(1)),
+                _quickChip('Today'.tr(), '1', () => onQuick(1)),
                 const SizedBox(width: 6),
-                _quickChip('7 days'.tr(), () => onQuick(7)),
+                _quickChip('7 days'.tr(), '7', () => onQuick(7)),
                 const SizedBox(width: 6),
-                _quickChip('30 days'.tr(), () => onQuick(30)),
+                _quickChip('30 days'.tr(), '30', () => onQuick(30)),
                 const SizedBox(width: 6),
-                _quickChip('All'.tr(), () => onQuick(null)),
+                _quickChip('All'.tr(), 'all', () => onQuick(null)),
                 const SizedBox(width: 6),
-                ActionChip(
+                ChoiceChip(
                   avatar: const Icon(Icons.date_range, size: 16),
                   label: Text('Custom'.tr()),
-                  onPressed: onPickRange,
+                  selected: active == 'custom',
+                  showCheckmark: false,
+                  onSelected: (_) => onPickRange(),
                 ),
               ],
             ),
@@ -262,10 +268,12 @@ class _FilterBar extends StatelessWidget {
     );
   }
 
-  Widget _quickChip(String label, VoidCallback onTap) {
-    return ActionChip(
+  Widget _quickChip(String label, String key, VoidCallback onTap) {
+    return ChoiceChip(
       label: Text(label),
-      onPressed: onTap,
+      selected: active == key,
+      showCheckmark: false,
+      onSelected: (_) => onTap(),
     );
   }
 }
@@ -294,12 +302,18 @@ class _DayBlock extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(label,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 14)),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: cs.primaryContainer,
                       borderRadius: BorderRadius.circular(12),
@@ -317,10 +331,11 @@ class _DayBlock extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               ...logs.map((log) {
-                final raw = parseHexColor(log.drinkColor) ??
-                    BrandColors.sky500;
+                final raw = parseHexColor(log.drinkColor) ?? BrandColors.sky500;
                 final tone = DrinkColors.from(
-                    raw, Theme.of(context).brightness);
+                  raw,
+                  Theme.of(context).brightness,
+                );
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
@@ -353,17 +368,18 @@ class _DayBlock extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(log.drinkName,
-                                style: const TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w600)),
                             Text(
-                              DateFormat('HH:mm')
-                                  .format(log.consumedAt),
+                              context.tr(log.drinkName),
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              DateFormat('HH:mm').format(log.consumedAt),
                               style: TextStyle(
                                 fontSize: 11,
-                                color: cs.onSurface
-                                    .withValues(alpha: 0.55),
+                                color: cs.onSurface.withValues(alpha: 0.55),
                               ),
                             ),
                           ],
@@ -371,7 +387,9 @@ class _DayBlock extends StatelessWidget {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: tone.chipBg,
                           borderRadius: BorderRadius.circular(10),

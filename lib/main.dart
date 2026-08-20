@@ -6,6 +6,7 @@ import 'providers/auth_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'providers/reminder_provider.dart';
 import 'providers/theme_provider.dart';
+import 'services/api_service.dart';
 import 'services/notification_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
@@ -72,6 +73,10 @@ class _WaterAppState extends State<WaterApp> {
   @override
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeProvider>();
+    // Single place that sees every locale change, whether it came from the
+    // language picker or from the user's stored preference below. The
+    // backend localizes its API error messages off this header.
+    ApiService.languageCode = context.locale.languageCode;
     // When auth loads (or refreshes) the user's preferred locale,
     // propagate it to EasyLocalization. Skips if the stored device
     // locale already matches so we don't churn frames on every build.
@@ -114,19 +119,26 @@ class _AppRootState extends State<_AppRoot> {
 
   final GlobalKey<HistoryScreenState> _historyKey =
       GlobalKey<HistoryScreenState>();
+  final GlobalKey<AchievementsScreenState> _achievementsKey =
+      GlobalKey<AchievementsScreenState>();
 
   late final List<Widget> _screens = [
     const DashboardScreen(),
     HistoryScreen(key: _historyKey),
-    const AchievementsScreen(),
+    AchievementsScreen(key: _achievementsKey),
     const TipsScreen(),
     const ProfileScreen(),
   ];
 
+  // IndexedStack keeps every tab alive, so a tab that loaded at startup
+  // would otherwise never see drinks logged since. Both of these change
+  // as a side effect of logging on the dashboard.
   void _onTabSelected(int index) {
     setState(() => _tab = index);
     if (index == 1) {
       _historyKey.currentState?.refresh();
+    } else if (index == 2) {
+      _achievementsKey.currentState?.refresh();
     }
   }
 
@@ -135,6 +147,11 @@ class _AppRootState extends State<_AppRoot> {
     final auth = context.watch<AuthProvider>();
 
     if (!auth.isLoggedIn) {
+      // Drop back to the dashboard while logged out, so the next account to
+      // sign in doesn't land on whatever tab the previous one left open.
+      // Safe to assign without setState: this build is already running and
+      // the logged-out branch never reads _tab.
+      _tab = 0;
       return const LoginScreen();
     }
 
@@ -144,36 +161,39 @@ class _AppRootState extends State<_AppRoot> {
 
     return Scaffold(
       body: IndexedStack(index: _tab, children: _screens),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: _onTabSelected,
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.water_drop_outlined),
-            selectedIcon: const Icon(Icons.water_drop),
-            label: 'Dashboard'.tr(),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.history_outlined),
-            selectedIcon: const Icon(Icons.history),
-            label: 'History'.tr(),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.emoji_events_outlined),
-            selectedIcon: const Icon(Icons.emoji_events),
-            label: 'Achievements'.tr(),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.lightbulb_outlined),
-            selectedIcon: const Icon(Icons.lightbulb),
-            label: 'Tips'.tr(),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.person_outlined),
-            selectedIcon: const Icon(Icons.person),
-            label: 'Profile'.tr(),
-          ),
-        ],
+      bottomNavigationBar: MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 1.0,
+        child: NavigationBar(
+          selectedIndex: _tab,
+          onDestinationSelected: _onTabSelected,
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.water_drop_outlined),
+              selectedIcon: const Icon(Icons.water_drop),
+              label: context.tr('Dashboard'),
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.history_outlined),
+              selectedIcon: const Icon(Icons.history),
+              label: context.tr('History'),
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.emoji_events_outlined),
+              selectedIcon: const Icon(Icons.emoji_events),
+              label: context.tr('Achievements'),
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.lightbulb_outlined),
+              selectedIcon: const Icon(Icons.lightbulb),
+              label: context.tr('Tips'),
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.person_outlined),
+              selectedIcon: const Icon(Icons.person),
+              label: context.tr('Profile'),
+            ),
+          ],
+        ),
       ),
     );
   }

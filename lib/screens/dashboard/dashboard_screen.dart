@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../models/drink.dart';
@@ -30,8 +29,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(DateFormat('EEEE, MMM d', context.locale.languageCode)
-            .format(DateTime.now())),
+        title: Text(
+          DateFormat(
+            'EEEE, MMM d',
+            context.locale.languageCode,
+          ).format(DateTime.now()),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -71,7 +74,10 @@ class _HeroCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 22),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [BrandColors.gradientStartStrong, BrandColors.gradientEndStrong],
+          colors: [
+            BrandColors.gradientStartStrong,
+            BrandColors.gradientEndStrong,
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -150,25 +156,27 @@ class _HeroCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text.rich(
-                      TextSpan(children: [
-                        TextSpan(
-                          text: '${dash.consumedMl.toInt()}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                            height: 1.1,
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${dash.consumedMl.toInt()}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w700,
+                              height: 1.1,
+                            ),
                           ),
-                        ),
-                        TextSpan(
-                          text: ' / ${dash.targetMl.toInt()} ml',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
+                          TextSpan(
+                            text: ' / ${dash.targetMl.toInt()} ml',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                      ]),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -189,7 +197,9 @@ class _HeroCard extends StatelessWidget {
                       ),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
@@ -251,9 +261,10 @@ class _DrinkPicker extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Pick a drink'.tr(),
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w600)),
+            Text(
+              'Pick a drink'.tr(),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 12),
             if (dash.drinks.isEmpty)
               const Padding(
@@ -264,12 +275,14 @@ class _DrinkPicker extends StatelessWidget {
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  // Three across, matching the web's phone breakpoint. Four
+                  // was narrow enough that Russian names ("Минеральная")
+                  // broke mid-word.
+                  crossAxisCount: 3,
                   mainAxisSpacing: 10,
                   crossAxisSpacing: 10,
-                  childAspectRatio: 0.92,
+                  childAspectRatio: 1.0,
                 ),
                 itemCount: dash.drinks.length,
                 itemBuilder: (context, i) => _DrinkTile(
@@ -324,18 +337,24 @@ class _DrinkTile extends StatelessWidget {
                 ],
               ),
               alignment: Alignment.center,
-              child: DrinkIcon(
-                  slug: drink.slug, color: Colors.white, size: 26),
+              child: DrinkIcon(slug: drink.slug, color: Colors.white, size: 26),
             ),
             const SizedBox(height: 6),
-            Text(
-              drink.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w500,
+            // Expanded (rather than a bare Text) so sub-pixel rounding in
+            // the grid's tile height can never overflow the column.
+            Expanded(
+              child: Text(
+                // Seeded drink names double as translation keys (same as
+                // the web's __($drink->name)); user-created drinks fall
+                // through to their own name.
+                context.tr(drink.name),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
@@ -370,13 +389,19 @@ class _VolumeSheetState extends State<_VolumeSheet> {
     final ok = await widget.dash.logDrink(widget.drink.id, ml.toDouble());
     if (!mounted) return;
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(ok ? '$ml ml logged 💧' : 'Failed to log drink'),
-      backgroundColor: ok
-          ? BrandColors.emerald500
-          : Theme.of(context).colorScheme.error,
-      duration: const Duration(seconds: 2),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok
+              ? '${context.tr('{ml} ml logged', namedArgs: {'ml': '$ml'})} 💧'
+              : context.tr('Failed to log drink'),
+        ),
+        backgroundColor: ok
+            ? BrandColors.emerald500
+            : Theme.of(context).colorScheme.error,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -422,22 +447,29 @@ class _VolumeSheetState extends State<_VolumeSheet> {
                 ),
                 alignment: Alignment.center,
                 child: DrinkIcon(
-                    slug: drink.slug, color: Colors.white, size: 28),
+                  slug: drink.slug,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(drink.name,
-                        style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700)),
                     Text(
-                      '${drink.hydrationMultiplier.toStringAsFixed(drink.hydrationMultiplier == drink.hydrationMultiplier.roundToDouble() ? 0 : 2)}× hydration',
+                      context.tr(drink.name),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '${drink.hydrationMultiplier.toStringAsFixed(drink.hydrationMultiplier == drink.hydrationMultiplier.roundToDouble() ? 0 : 2)}× ${context.tr('hydration')}',
                       style: TextStyle(
-                          fontSize: 12,
-                          color: cs.onSurface.withValues(alpha: 0.6)),
+                        fontSize: 12,
+                        color: cs.onSurface.withValues(alpha: 0.6),
+                      ),
                     ),
                   ],
                 ),
@@ -449,11 +481,14 @@ class _VolumeSheetState extends State<_VolumeSheet> {
             ],
           ),
           const SizedBox(height: 16),
-          Text('Choose amount'.tr(),
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurface.withValues(alpha: 0.7))),
+          Text(
+            'Choose amount'.tr(),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
           const SizedBox(height: 8),
           GridView.builder(
             shrinkWrap: true,
@@ -476,20 +511,26 @@ class _VolumeSheetState extends State<_VolumeSheet> {
                     border: Border.all(color: cs.outline),
                   ),
                   alignment: Alignment.center,
-                  child: Text('$v ml',
-                      style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600)),
+                  child: Text(
+                    '$v ml',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               );
             },
           ),
           const SizedBox(height: 16),
-          Text('Custom amount'.tr(),
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurface.withValues(alpha: 0.7))),
+          Text(
+            'Custom amount'.tr(),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -511,8 +552,8 @@ class _VolumeSheetState extends State<_VolumeSheet> {
                         final v = int.tryParse(_custom.text);
                         if (v == null || v < 10 || v > 5000) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text('Enter 10–5000 ml'.tr())));
+                            SnackBar(content: Text('Enter 10–5000 ml'.tr())),
+                          );
                           return;
                         }
                         _log(v);
@@ -548,12 +589,16 @@ class _RecentLogsCard extends StatelessWidget {
                 Text(
                   'Recent logs'.tr(),
                   style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 if (dash.recentLogs.isNotEmpty)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: cs.primaryContainer,
                       borderRadius: BorderRadius.circular(12),
@@ -579,17 +624,19 @@ class _RecentLogsCard extends StatelessWidget {
                         .tr(),
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        fontSize: 13,
-                        color: cs.onSurface.withValues(alpha: 0.55)),
+                      fontSize: 13,
+                      color: cs.onSurface.withValues(alpha: 0.55),
+                    ),
                   ),
                 ),
               )
             else
               ...dash.recentLogs.map((log) {
-                final raw =
-                    parseHexColor(log.drinkColor) ?? BrandColors.sky500;
-                final tone =
-                    DrinkColors.from(raw, Theme.of(context).brightness);
+                final raw = parseHexColor(log.drinkColor) ?? BrandColors.sky500;
+                final tone = DrinkColors.from(
+                  raw,
+                  Theme.of(context).brightness,
+                );
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Row(
@@ -620,19 +667,17 @@ class _RecentLogsCard extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              log.drinkName,
+                              context.tr(log.drinkName),
                               style: const TextStyle(
                                 fontSize: 14.5,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             Text(
-                              DateFormat('HH:mm')
-                                  .format(log.consumedAt),
+                              DateFormat('HH:mm').format(log.consumedAt),
                               style: TextStyle(
                                 fontSize: 12,
-                                color:
-                                    cs.onSurface.withValues(alpha: 0.55),
+                                color: cs.onSurface.withValues(alpha: 0.55),
                               ),
                             ),
                           ],
@@ -640,7 +685,9 @@ class _RecentLogsCard extends StatelessWidget {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: tone.chipBg,
                           borderRadius: BorderRadius.circular(12),
