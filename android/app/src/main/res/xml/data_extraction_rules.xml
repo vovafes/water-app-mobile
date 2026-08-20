@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Companion to android:allowBackup="false" in the manifest.
+
+  allowBackup="false" stops Google's cloud backup, but on Android 12 (API 31)
+  and up it does *not* stop device-to-device transfer — that channel is
+  governed only by this file. Both would copy shared_preferences, which is
+  where the Sanctum bearer token lives, onto hardware the token was never
+  issued for.
+
+  Nothing the app keeps on disk is worth restoring anyway: the token is
+  re-obtainable by logging in, and the backend is the source of truth for
+  everything else. So both channels are emptied rather than filtered.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>

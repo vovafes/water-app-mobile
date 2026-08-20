@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Release baseline: HTTPS only.
+
+    Local testing against `http://192.168.x.x:8000` is handled by the debug
+    and profile source sets, which override this file with a permissive
+    version. Nothing shipped to a store can talk plain HTTP.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

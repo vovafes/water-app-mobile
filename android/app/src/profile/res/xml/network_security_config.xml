@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Profile builds are release-like but never published, so they keep
+    cleartext enabled for on-device testing against a LAN backend.
+
+    Run one with `flutter run` in profile mode, passing the dart-define
+    API_BASE_URL=http://192.168.1.42:8000.
+
+    Note: XML comments cannot contain a double hyphen, which is why the
+    dart-define above is spelled out rather than written as a CLI flag.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

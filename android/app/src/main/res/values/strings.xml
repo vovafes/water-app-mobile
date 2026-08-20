@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The launcher label, pulled out of AndroidManifest.xml so there is one place
+  to change it.
+
+  Deliberately not localized with values-de/-ru/-uk: "Water App" is the brand,
+  and the app renders it untranslated everywhere else too (the login header,
+  MaterialApp.title). Android also picks this string off the *system* locale,
+  not the in-app one from easy_localization, so a translated label would
+  disagree with the UI the moment the two differ.
+-->
+<resources>
+    <string name="app_name">Water App</string>
+</resources>

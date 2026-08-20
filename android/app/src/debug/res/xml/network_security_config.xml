@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Debug builds only. Permits plain HTTP so the app can reach a
+    `php artisan serve` backend on the LAN or the emulator loopback
+    (10.0.2.2), overriding the HTTPS-only baseline in src/main.
+
+    Point a debug build at a LAN host by passing the dart-define
+    API_BASE_URL=http://192.168.1.42:8000 to `flutter run`.
+
+    Also trusts user-installed CAs so tools like mitmproxy work.
+
+    Note: XML comments cannot contain a double hyphen, which is why the
+    dart-define above is spelled out rather than written as a CLI flag.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
