@@ -4,35 +4,8 @@ Tracked open items for the Water App mobile / backend pair. Items here
 are not blocking the current APK but should be addressed before the
 app sees real distribution.
 
-## Mobile + backend
-
-### Profile photo / avatar (blocked on backend)
-
-The Flutter Profile screen renders the user's first initial inside a
-sky→cyan gradient circle. To support real photos:
-
-**Backend (water-app):**
-1. Migration: `add_avatar_path_to_users` — `string('avatar_path')->nullable()`
-2. `App\Models\User`: append `avatar_url` accessor that prefixes
-   `Storage::disk('public')->url($avatar_path)` (or returns `null`)
-3. `App\Http\Controllers\Api\V1\ProfileController`:
-   - `uploadAvatar(Request $request)` — validate `image|max:5120`, resize to
-     ~512×512 via Intervention Image (already in vendor), store on the
-     `public` disk under `avatars/{user_id}.{ext}`, save the path.
-   - `deleteAvatar()` — remove file + null the column.
-4. Routes (`routes/api.php`):
-   ```php
-   Route::post('profile/avatar',   [ProfileController::class, 'uploadAvatar']);
-   Route::delete('profile/avatar', [ProfileController::class, 'deleteAvatar']);
-   ```
-
-**Mobile (water-app-mobile):**
-1. Add `image_picker: ^1.x` to `pubspec.yaml`.
-2. Add `User.avatarUrl` field.
-3. Add `multipart` POST helper to `ApiService`.
-4. On Profile screen, wrap the avatar circle in a tap handler →
-   bottom sheet with "Take photo / Choose from gallery / Remove" →
-   upload, then call `AuthProvider.refreshUser()` to redraw.
+Release-blocking work is tracked separately in
+[`DEPLOYMENT.md`](DEPLOYMENT.md); this file is the general backlog.
 
 ## Mobile
 
@@ -49,15 +22,11 @@ directly instead of guessing.
 `ios/` exists but is unbuilt. See README for what a Mac-side build
 requires.
 
-### Cleartext HTTP → HTTPS
-`AndroidManifest.xml` carries `usesCleartextTraffic="true"` so the
-release APK can talk to the dev `http://192.168.2.100:8000`. Drop
-this flag and switch the base URL to `https://...` before any real
-distribution.
-
-### `shared_preferences_android` KGP warning
-The plugin still applies the old Kotlin Gradle Plugin. Future Flutter
-releases will reject this. Upgrade when its next major drops.
+### KGP deprecation warning
+`shared_preferences_android` and `flutter_timezone` still apply the old
+Kotlin Gradle Plugin instead of Flutter's built-in Kotlin. Non-fatal
+today; a future Flutter release will refuse to build. Upgrade when their
+next majors drop.
 
 ## Backend (water-app)
 
@@ -86,3 +55,16 @@ add the slug alongside `drink_name`/`drink_color`.
       inline SVGs) — replaced the emoji-fallback/`icon_path` approach,
       which assumed the backend serves icon image files (it doesn't;
       `icon_path` is just an emoji character in the database)
+- [x] Profile photo / avatar, both sides (`POST`/`DELETE
+      /api/v1/profile/avatar`, `image_picker` on the Profile screen)
+- [x] Account deletion in-app, password-confirmed — Google Play requires
+      it for any app with in-app registration
+- [x] Reminders actually fire (local notifications, DST-safe scheduling)
+- [x] Whole UI localized; `Accept-Language` sent so backend error and
+      validation messages come back translated too
+- [x] Cleartext HTTP replaced with per-source-set
+      `network_security_config.xml` — permitted in debug/profile, forbidden
+      in release, instead of a blanket `usesCleartextTraffic` flag
+- [x] Android backup + device-transfer disabled so the bearer token can't
+      follow a restored phone
+- [x] R8 enabled for release, with keep rules for the notification plugin
