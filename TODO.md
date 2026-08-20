@@ -36,12 +36,14 @@ sky→cyan gradient circle. To support real photos:
 
 ## Mobile
 
-### Drink icon images
-The backend returns `icon_path` for each drink (`/storage/drink-icons/...`).
-Mobile currently renders an emoji fallback keyed off the category slug.
-Switch to `Image.network(drink.iconUrl!)` with the emoji as the
-`errorBuilder` once you've confirmed the icon assets are uploaded via
-the Filament admin.
+### History drink icons are guessed from the name
+`drink-logs`/dashboard API responses don't include the drink's `slug`,
+only `drink_name`/`drink_color`/`icon_path`. `history_screen.dart`'s
+`_guessSlug()` pattern-matches on `drink_name` text to pick a `DrinkIcon`
+— works for the seeded drinks but breaks for custom or localized names.
+Real fix: have the backend include `drink_slug` in those responses
+(`DashboardSummaryService`/`DrinkLogController@index`) and read it
+directly instead of guessing.
 
 ### iOS build
 `ios/` exists but is unbuilt. See README for what a Mac-side build
@@ -59,15 +61,11 @@ releases will reject this. Upgrade when its next major drops.
 
 ## Backend (water-app)
 
-### Drink categories
-Mobile's drink chip emoji is keyed off the category slug. New categories
-added via Filament admin will fall back to a generic 🥤 — update
-`Drink.emojiFallback` in `lib/models/drink.dart` when adding new slugs.
-
-### Drink icon assets
-Run `php artisan storage:link` (done automatically by the Docker
-entrypoint) and upload SVG/PNG icons via Filament so the mobile app
-can render them.
+### Add `drink_slug` to log-listing API responses
+Needed to fix the "History drink icons are guessed from the name" item
+above. `DashboardSummaryService::recentLogsFor()` and
+`DrinkLogController@index` both flatten/nest drink data already —
+add the slug alongside `drink_name`/`drink_color`.
 
 ## Done
 
@@ -84,3 +82,7 @@ can render them.
 - [x] Awards screen redesign (badges, hero stats, detail sheet)
 - [x] Tips feed redesign (cards with cover images, full-screen reader)
 - [x] App icon + name matching web brand ("Water App", sky/cyan droplet)
+- [x] Drink icons matching web (`DrinkIcon` mirrors the web's per-slug
+      inline SVGs) — replaced the emoji-fallback/`icon_path` approach,
+      which assumed the backend serves icon image files (it doesn't;
+      `icon_path` is just an emoji character in the database)

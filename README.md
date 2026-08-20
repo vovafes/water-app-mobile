@@ -200,11 +200,12 @@ Tracked with the rest of the release work in [`DEPLOYMENT.md`](DEPLOYMENT.md).
    `usesCleartextTraffic` flag in the manifest to flip — the switch is
    the per-source-set `network_security_config.xml`, and it is
    deliberately strict for the artifact that ships.
-2. **No privacy policy is served.** `routes/web.php` in the backend has
-   no `/privacy` route, and Play will not accept a listing without a
-   public policy URL. The app collects email, birth date, weight and
-   height — the last three are health data, which also drives a stricter
-   Data Safety declaration. This is a hard submission blocker.
+2. **The privacy policy exists but is not publicly reachable.** The
+   backend serves `/privacy`, `/terms` and `/help`, and the policy names
+   the health data the app collects (birth date, weight, height), which
+   drives the stricter Data Safety declaration. Play needs a public URL
+   though, so this stays blocked behind item 1. The page bodies are also
+   English-only for now.
 3. **Password reset silently does nothing in production.** The backend's
    `.env` still has `MAIL_MAILER=log`, so `POST /auth/forgot-password`
    returns 200 and writes the mail to `storage/logs`. Point it at a real
@@ -220,6 +221,12 @@ Tracked with the rest of the release work in [`DEPLOYMENT.md`](DEPLOYMENT.md).
    and `flutter_timezone` still apply KGP instead of Flutter's built-in
    Kotlin. Non-fatal today, but future Flutter releases will refuse to
    build. Upgrade when their next majors drop.
+7. **Drink icons are guessed from the display name.** The dashboard and
+   `drink-logs` responses carry `drink_name`/`drink_color`/`icon_path`
+   but no `slug`, so `_guessSlug()` pattern-matches on the name text to
+   pick an icon. That breaks for custom drinks and for any localized
+   name; the real fix is adding `drink_slug` to those responses on the
+   backend.
 
 ## iOS
 

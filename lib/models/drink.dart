@@ -1,5 +1,3 @@
-import '../services/api_service.dart';
-
 class Drink {
   final int id;
   final String name;
@@ -24,40 +22,6 @@ class Drink {
   /// Convenience: default volume to log when the user just taps the chip.
   int get defaultVolumeMl =>
       defaultVolumes.isNotEmpty ? defaultVolumes.first : 250;
-
-  /// Absolute URL for the icon image, or null if the drink has no icon.
-  String? get iconUrl {
-    if (iconPath == null || iconPath!.isEmpty) return null;
-    return '${ApiService.assetBaseUrl}/$iconPath';
-  }
-
-  /// A small emoji fallback for the chip when there's no icon image — keyed
-  /// off the category slug. This keeps the UI presentable until icon images
-  /// load.
-  String get emojiFallback {
-    switch (categorySlug) {
-      case 'water':
-        return '💧';
-      case 'coffee':
-        return '☕';
-      case 'tea':
-        return '🍵';
-      case 'juice':
-        return '🧃';
-      case 'soft-drink':
-      case 'soda':
-        return '🥤';
-      case 'alcohol':
-      case 'beer':
-        return '🍺';
-      case 'milk':
-        return '🥛';
-      case 'sports':
-        return '🥤';
-      default:
-        return '🥤';
-    }
-  }
 
   factory Drink.fromJson(Map<String, dynamic> json) {
     // Backend returns `category` as either:
