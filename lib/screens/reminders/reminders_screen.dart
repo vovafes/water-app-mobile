@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/reminder.dart';
+import '../../premium/premium_gate.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/reminder_provider.dart';
 import '../../theme.dart';
+import '../../widgets/premium_prompt.dart';
 
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
@@ -24,6 +27,25 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
   Future<void> _openEditor([Reminder? existing]) async {
     final provider = context.read<ReminderProvider>();
+
+    // The most earned paywall in the app: the user already has a schedule
+    // running and wants a second one. Editing an existing reminder is never
+    // gated — taking away something already set up is a different and much
+    // worse experience than declining to add another.
+    if (existing == null) {
+      final limit = context.read<AuthProvider>().gate.reminderLimit;
+      if (limit != null && provider.reminders.length >= limit) {
+        final bought = await showPremiumPrompt(
+          context,
+          PremiumFeature.moreReminders,
+          source: 'reminders',
+        );
+        if (!bought) return;
+        if (!mounted) return;
+      }
+    }
+
+    if (!mounted) return;
     final result = await Navigator.of(context).push<Reminder>(
       MaterialPageRoute(builder: (_) => ReminderEditScreen(reminder: existing)),
     );

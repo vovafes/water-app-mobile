@@ -45,7 +45,25 @@ Kotlin Gradle Plugin instead of Flutter's built-in Kotlin. Non-fatal
 today; a future Flutter release will refuse to build. Upgrade when their
 next majors drop.
 
+### Premium is client-side only so far
+`PremiumGate` reads an `entitlement` object the backend does not send yet,
+so every account resolves to free. The limits it enforces are UX, not
+enforcement — the API will still serve a free user their whole history if
+asked directly. See MONETIZATION.md §9 for the server side.
+
+### No store products exist
+`UnconfiguredPurchaseService` serves the planned tiers so the paywall can be
+laid out, and refuses to transact. Replacing it is one class: implement
+`PurchaseService` over `purchases_flutter`, register the three product IDs
+in `PremiumProducts`, and pass the real instance to `PaywallScreen`.
+
 ## Backend (water-app)
+
+### Subscriptions table and store webhooks
+Blocks everything Premium. Needs a `subscriptions` table, an `entitlement`
+object on `/auth/me`, and App Store Server Notifications V2 + Play RTDN so
+cancellations, refunds and failed billing actually reach the backend.
+Details and field list in MONETIZATION.md §9.
 
 ### Add `drink_slug` to log-listing API responses
 Needed to fix the "History drink icons are guessed from the name" item
@@ -91,6 +109,14 @@ add the slug alongside `drink_name`/`drink_color`.
 - [x] iOS `Info.plist` given the keys that are not optional: camera and
       photo-library usage descriptions (`image_picker` crashes the process
       without them), `ITSAppUsesNonExemptEncryption`, `CFBundleLocalizations`
+- [x] Subscription strategy written against the real feature inventory
+      (MONETIZATION.md)
+- [x] Entitlement model, offline cache with a 7-day TTL, and `PremiumGate`
+      holding the Free/Premium line in one file
+- [x] Paywall screen — post-onboarding, contextual sheet, and the standing
+      Profile row; close control and Restore covered by tests because they
+      are App Review requirements rather than taste
+- [x] Second reminder gated, which is the most earned paywall in the app
 - [x] Network failures no longer throw out of `ApiService` — every verb
       returns the normal `{success: false, status: 0}` envelope and times out
       at 20 s, so an offline login shows an error instead of a stuck spinner

@@ -9,6 +9,7 @@ import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../theme.dart';
 import '../reminders/reminders_screen.dart';
+import '../paywall/paywall_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -208,6 +209,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   _Header(user: user),
                   const SizedBox(height: 20),
+                  const _PremiumRow(),
                   _SectionTitle(title: 'Daily goal'.tr()),
                   Card(
                     child: Column(
@@ -947,6 +949,82 @@ class _DateTile extends StatelessWidget {
         );
         if (picked != null) onChanged(picked);
       },
+    );
+  }
+}
+
+/// Standing Premium row, for people who dismissed the paywall after
+/// onboarding and came back a week later.
+///
+/// A row rather than a banner. Banners in a settings list get filtered out
+/// by eye within days, and an unskippable one would be the sort of thing
+/// App Review reads as pressure. When Premium is active this turns into
+/// plain status, which is where a subscriber goes to check their renewal
+/// date.
+class _PremiumRow extends StatelessWidget {
+  const _PremiumRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final theme = Theme.of(context);
+
+    if (auth.isPremium) {
+      final until = auth.entitlement.expiresAt;
+      return Card(
+        margin: const EdgeInsets.only(bottom: 20),
+        child: ListTile(
+          leading: const Icon(
+            Icons.workspace_premium,
+            color: BrandColors.sky500,
+          ),
+          title: Text('Premium'.tr()),
+          subtitle: Text(
+            until == null
+                ? 'Yours for good'.tr()
+                : auth.entitlement.cancelled
+                ? 'Access until {date}'.tr(
+                    namedArgs: {
+                      'date': DateFormat.yMMMd(
+                        context.locale.languageCode,
+                      ).format(until),
+                    },
+                  )
+                : 'Renews {date}'.tr(
+                    namedArgs: {
+                      'date': DateFormat.yMMMd(
+                        context.locale.languageCode,
+                      ).format(until),
+                    },
+                  ),
+          ),
+        ),
+      );
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 20),
+      child: ListTile(
+        leading: const Icon(
+          Icons.workspace_premium_outlined,
+          color: BrandColors.sky500,
+        ),
+        title: Text(
+          'Unlock Premium'.tr(),
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        subtitle: Text('A goal that follows your day'.tr()),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const PaywallScreen(source: 'profile'),
+            fullscreenDialog: true,
+          ),
+        ),
+      ),
     );
   }
 }

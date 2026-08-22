@@ -1,18 +1,53 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/entitlement_store.dart';
+import '../models/entitlement.dart';
 import '../models/user.dart';
+import '../premium/premium_gate.dart';
 
 class AuthProvider extends ChangeNotifier {
   User? _user;
   bool _loading = false;
   String? _error;
+  Entitlement _entitlement = Entitlement.free;
 
   User? get user => _user;
   bool get loading => _loading;
   String? get error => _error;
   bool get isLoggedIn => _user != null;
   bool get needsOnboarding => _user != null && !_user!.isOnboarded;
+
+  /// Whether this account may use Premium, as last told by the backend.
+  Entitlement get entitlement => _entitlement;
+
+  /// The one place any screen should ask about Premium. Never read
+  /// [entitlement] directly to gate a feature — the limits live in
+  /// [PremiumGate] so they can move in one edit.
+  PremiumGate get gate => PremiumGate(_entitlement);
+
+  bool get isPremium => _entitlement.isActive;
+
+  /// Reads the cached entitlement before the first network call, so a cold
+  /// start offline does not flash the free tier at a paying user. Called
+  /// from main.dart alongside [loadUser].
+  Future<void> loadCachedEntitlement() async {
+    if (await ApiService.getToken() == null) return;
+    _entitlement = await EntitlementStore.read();
+    if (_entitlement.isActive) notifyListeners();
+  }
+
+  /// Pulls `entitlement` out of an /auth/me-shaped payload and caches it.
+  ///
+  /// A backend that does not send the key yet yields [Entitlement.free],
+  /// which is the correct reading: no entitlement on record, no Premium.
+  Future<void> _applyEntitlement(Map<String, dynamic> body) async {
+    final raw = body['entitlement'];
+    _entitlement = raw is Map<String, dynamic>
+        ? Entitlement.fromJson(raw)
+        : Entitlement.free;
+    await EntitlementStore.save(_entitlement);
+  }
 
   void clearError() {
     if (_error != null) {
@@ -50,6 +85,7 @@ class AuthProvider extends ChangeNotifier {
       final data = res['data'] as Map<String, dynamic>;
       await ApiService.setToken(data['token'].toString());
       _user = User.fromJson(data['user'] as Map<String, dynamic>);
+      await _applyEntitlement(data);
       notifyListeners();
       return true;
     } else {
@@ -114,6 +150,9 @@ class AuthProvider extends ChangeNotifier {
       }
       if (userJson != null) {
         _user = User.fromJson(userJson);
+        // `entitlement` sits beside `user` in the envelope, not inside it —
+        // it belongs to the account, not to the profile record.
+        if (data is Map<String, dynamic>) await _applyEntitlement(data);
         notifyListeners();
       }
     } else if (res['status'] == 401) {
@@ -160,7 +199,9 @@ class AuthProvider extends ChangeNotifier {
       // Even if the logout call fails, drop local state.
     }
     await ApiService.clearToken();
+    await EntitlementStore.clear();
     _user = null;
+    _entitlement = Entitlement.free;
     notifyListeners();
   }
 
@@ -184,7 +225,9 @@ class AuthProvider extends ChangeNotifier {
 
     if (res['success'] == true) {
       await ApiService.clearToken();
+      await EntitlementStore.clear();
       _user = null;
+      _entitlement = Entitlement.free;
       notifyListeners();
       return true;
     }

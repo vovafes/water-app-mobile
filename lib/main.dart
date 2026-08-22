@@ -13,6 +13,7 @@ import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/achievements/achievements_screen.dart';
 import 'screens/diary/history_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
+import 'screens/paywall/paywall_screen.dart';
 import 'screens/tips/tips_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'theme.dart';
@@ -66,7 +67,10 @@ class _WaterAppState extends State<WaterApp> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AuthProvider>().loadUser();
+      final auth = context.read<AuthProvider>();
+      // Cache first, network second. A cold start with no signal must not
+      // show a paying user the free tier while /auth/me is in flight.
+      auth.loadCachedEntitlement().then((_) => auth.loadUser());
     });
   }
 
@@ -117,6 +121,12 @@ class _AppRoot extends StatefulWidget {
 class _AppRootState extends State<_AppRoot> {
   int _tab = 0;
 
+  /// True once this session has watched onboarding finish. The paywall's
+  /// whole premise is that it continues onboarding rather than interrupting
+  /// the app, so it fires on that transition and nowhere else.
+  bool _sawOnboarding = false;
+  bool _paywallShown = false;
+
   final GlobalKey<HistoryScreenState> _historyKey =
       GlobalKey<HistoryScreenState>();
   final GlobalKey<AchievementsScreenState> _achievementsKey =
@@ -156,7 +166,28 @@ class _AppRootState extends State<_AppRoot> {
     }
 
     if (auth.needsOnboarding) {
+      _sawOnboarding = true;
       return const OnboardingScreen();
+    }
+
+    // Highest-intent moment in the app: the backend has just turned eight
+    // answers into a personal number. Deliberately not shown to someone who
+    // onboarded on a previous install — for them this is a cold ask, and
+    // the Profile row is the right surface.
+    if (_sawOnboarding && !_paywallShown && !auth.isPremium) {
+      _paywallShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const PaywallScreen(
+              source: 'onboarding',
+              angle: PaywallAngle.physiology,
+            ),
+            fullscreenDialog: true,
+          ),
+        );
+      });
     }
 
     return Scaffold(

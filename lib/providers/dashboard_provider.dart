@@ -16,6 +16,7 @@ class DashboardProvider extends ChangeNotifier {
   List<DrinkLog> _recentLogs = const [];
   List<Drink> _drinks = const [];
   bool _loading = false;
+  bool _loaded = false;
   String? _error;
 
   // ---- Getters ----------------------------------------------------------
@@ -33,6 +34,14 @@ class DashboardProvider extends ChangeNotifier {
   bool get loading => _loading;
   String? get error => _error;
 
+  /// True once a dashboard response has actually landed.
+  ///
+  /// [targetMl] starts at a placeholder 2000 so the progress ring has
+  /// something to divide by on the first frame. That number is not the
+  /// user's goal, and anything that *presents* it as personal — the
+  /// paywall's opening line, for one — has to wait for this.
+  bool get hasLoaded => _loaded;
+
   /// Progress fraction toward target, clamped to [0, 1].
   double get progress {
     if (_targetMl <= 0) return 0;
@@ -48,6 +57,7 @@ class DashboardProvider extends ChangeNotifier {
 
     final res = await ApiService.get('/dashboard/today');
     if (res['success'] == true && res['data'] is Map<String, dynamic>) {
+      _loaded = true;
       _applyDashboard(res['data'] as Map<String, dynamic>);
     } else {
       _error = 'Failed to load dashboard'.tr();
