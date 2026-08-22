@@ -169,6 +169,156 @@ Ordered by what blocks what.
    still apply the Kotlin Gradle Plugin instead of Flutter's built-in
    Kotlin. Non-fatal today; a future Flutter release will refuse to build.
    Upgrade when their next majors drop.
-5. **iOS is unbuilt.** `ios/` exists from `flutter create` and has never
-   been compiled. Needs a Mac, an Apple Developer account, cleartext/ATS
-   handling in `Info.plist`, a notification capability, and a real app icon.
+5. **iOS needs an Apple Developer account.** The app itself now builds and
+   runs — see [Deployment — iOS](#deployment--ios) below for what was
+   verified and what is left.
+
+---
+
+# Deployment — iOS
+
+Verified on a Mac on 2026-08-22: Xcode 26.5 (17F42), Flutter 3.44.1,
+macOS 26.5.2. The `ios/` directory is no longer just `flutter create`
+scaffolding — it compiles, signs-less-archives, and runs.
+
+## What actually built
+
+```
+flutter analyze                                    clean
+flutter test                                       34 passed
+flutter build ios --release --no-codesign          Runner.app, 20.7 MB
+flutter build ios --simulator --debug              launched on iPhone 17
+```
+
+The simulator run reaches the login screen, picks up the system locale,
+and renders the branded droplet. Nothing in the Dart layer is
+Android-specific.
+
+## No Podfile — plugins come from Swift Package Manager
+
+`flutter doctor` warns that CocoaPods is missing, and it is a red herring
+here. Flutter 3.44 resolves iOS plugins through SPM: the Xcode project
+carries an `XCLocalSwiftPackageReference` to
+`ios/Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage`, and all
+four iOS plugins — `shared_preferences_foundation`, `image_picker_ios`,
+`flutter_timezone`, `flutter_local_notifications` — resolve from there. No
+`ios/Podfile` is generated and none is needed.
+
+CocoaPods 1.17.0 is installed on the build Mac anyway (`brew install
+cocoapods`), because a plugin added later that has no SPM support makes
+Flutter fall back to it silently.
+
+**Do not follow a `cd ios && pod install` instruction from older notes.**
+It will not produce a Podfile and it is not what builds this app.
+
+## Info.plist keys that are not optional
+
+`flutter create` does not add usage-description strings, and their absence
+is not a warning — iOS kills the process the moment the API is touched.
+`image_picker` drives both the camera and the library from the avatar
+sheet, so both keys are required:
+
+| Key | Why |
+|---|---|
+| `NSCameraUsageDescription` | Profile → avatar → "Take a photo". Missing ⇒ hard crash. |
+| `NSPhotoLibraryUsageDescription` | Profile → avatar → "Choose from gallery". Missing ⇒ hard crash. |
+| `ITSAppUsesNonExemptEncryption` = `false` | Otherwise App Store Connect asks the export-compliance question on *every* upload. HTTPS-only counts as exempt. |
+| `CFBundleLocalizations` = en, de, ru, uk | Without it the store listing claims the app is English-only, whatever `easy_localization` does at runtime. |
+
+`CFBundleDisplayName` was `Water App Mobile`; it is now `Water App`, which
+is what Android's `strings.xml` and the login header already said.
+
+The permission strings themselves are English-only. They live in
+`Info.plist`, not in `assets/i18n`, so translating them means adding
+`ios/Runner/<lang>.lproj/InfoPlist.strings` for de/ru/uk and registering
+those files in the Xcode project. Cosmetic, not blocking.
+
+## ATS: nothing to do
+
+The README's old iOS note said to edit `Info.plist` to allow cleartext.
+Don't. App Transport Security defaults to HTTPS-only, which is exactly the
+posture `src/main/res/xml/network_security_config.xml` gives the Android
+release build. Adding an `NSAppTransportSecurity` exception would both
+weaken the shipped app and invite a review question. Point the app at an
+HTTPS backend instead — the same blocker Play has.
+
+## Privacy manifests
+
+Apple's required-reason API rules are already satisfied: the Flutter
+framework and all four plugins bundle their own `PrivacyInfo.xcprivacy`,
+visible in the built product. The Runner target itself has no
+`PrivacyInfo.xcprivacy` and does not need one — the Dart layer touches no
+required-reason API directly.
+
+What still has to be filled in by hand is the App Store Connect privacy
+questionnaire, and it is the same data inventory as Play's Data Safety
+form: email + name, health/fitness (birth date, weight, height), photos
+(avatar), app activity (drink logs) — all linked to the account, all
+deletable in-app.
+
+## App Store submission checklist
+
+- [ ] **Apple Developer Program membership**, $99/yr. Nothing below is
+      possible without it.
+- [ ] **Register the bundle ID.** iOS uses `com.vovafes.waterAppMobile`,
+      Android uses `com.vovafes.water_app_mobile` — they differ because
+      iOS bundle IDs cannot contain underscores. Both are permanent from
+      first publish. Settle the naming question (see "`applicationId`"
+      above) once, for both platforms, before either ships.
+- [ ] **Set `DEVELOPMENT_TEAM`.** The Xcode project has
+      `CODE_SIGN_STYLE = Automatic` and no team. Open
+      `ios/Runner.xcworkspace`, pick the team under Signing & Capabilities,
+      and let Xcode create the profile.
+- [ ] **Push Notifications capability is not needed.** Reminders are
+      *local* notifications; the plugin asks for permission at runtime and
+      no APNs entitlement is involved. Adding the capability would create
+      an entitlement the app never uses.
+- [ ] **Privacy policy URL.** Same blocker as Play — the page exists at
+      `/privacy` on the backend but has no public host.
+- [ ] **Account deletion.** Already in-app (Profile → Delete account).
+      Apple requires this for any app with in-app registration, same as Play.
+- [ ] **Screenshots.** Required at 6.9" and 6.5"; iPad sizes too if the app
+      is not marked iPhone-only. `LSRequiresIPhoneOS` is set but the target
+      is still Universal, so decide which.
+- [ ] **Archive and upload:**
+      ```bash
+      flutter build ipa --release --dart-define=API_BASE_URL=https://<host>
+      ```
+      then upload `build/ios/ipa/*.ipa` with Transporter, or
+      `xcrun altool`/`xcrun notarytool` from CI.
+
+## Known iOS-side gaps
+
+1. **Launch screen is blank white.** `Assets.xcassets/LaunchImage.imageset`
+   still holds the three 68-byte placeholder PNGs from `flutter create`, so
+   a dark-mode phone flashes white before the first Flutter frame. Not a
+   rejection risk, but Android has a themed launch and iOS does not.
+2. **App icon has the corner radius baked in.** `make-icon.ps1` draws a
+   rounded square at r=200 and `remove_alpha_ios: true` flattens the
+   corners to white. The iOS mask is a slightly *larger* radius, so it
+   clips inside the baked corner and no white shows — it renders correctly
+   today. Apple's HIG still asks for a full-bleed square; worth fixing when
+   the icon is next regenerated.
+3. **`make-icon.ps1` and `make-keystore.ps1` are Windows-only** —
+   `System.Drawing` plus a hardcoded `C:\dev\...` output path. Neither is
+   needed for an iOS build (signing is Xcode's job), but the icon script has
+   no Mac equivalent, so re-rendering the icon means a Windows machine or a
+   rewrite.
+4. **Foreground notification banners are untested on iOS.** Scheduled
+   reminders fire from the OS whether or not the app is running, but
+   displaying a banner while the app is in the foreground depends on
+   `UNUserNotificationCenter`'s delegate. Verify on a real device before
+   release.
+
+## Verified end-to-end: offline behaviour
+
+Every `ApiService` verb now funnels through `_send()`, which converts a
+transport failure into the ordinary `{success: false, status: 0}` envelope
+and caps each request at 20 s. Before that, a `ClientException` was thrown
+straight out of the `await` in `AuthProvider.login()`, skipping
+`_loading = false` — the login button spun forever with no error and no way
+back. Apple reviews on their own network and tests airplane mode; a stuck
+spinner is a standard Guideline 2.1 rejection.
+
+Confirmed on the simulator against an unreachable host: the login screen
+shows "Нет соединения с сервером" and re-enables the button.

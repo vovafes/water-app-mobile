@@ -18,9 +18,26 @@ Real fix: have the backend include `drink_slug` in those responses
 (`DashboardSummaryService`/`DrinkLogController@index`) and read it
 directly instead of guessing.
 
-### iOS build
-`ios/` exists but is unbuilt. See README for what a Mac-side build
-requires.
+### iOS: launch screen is still the blank placeholder
+`ios/Runner/Assets.xcassets/LaunchImage.imageset` holds the three 68-byte
+placeholder PNGs from `flutter create`, so the app flashes white before the
+first Flutter frame. Android has a themed launch; iOS does not.
+
+### iOS: foreground notification banners untested
+Scheduled reminders fire from the OS regardless, but showing a banner while
+the app is *in the foreground* depends on `UNUserNotificationCenter`'s
+delegate. Verify on a real device before release.
+
+### iOS: permission strings are English-only
+`NSCameraUsageDescription` / `NSPhotoLibraryUsageDescription` live in
+`Info.plist`, not `assets/i18n`. Translating them means adding
+`ios/Runner/<lang>.lproj/InfoPlist.strings` for de/ru/uk and registering
+them in the Xcode project.
+
+### `make-icon.ps1` is Windows-only
+`System.Drawing` plus a hardcoded `C:\dev\...` output path, so the app icon
+cannot be re-rendered on the Mac. Not needed for an iOS build, but there is
+no Mac equivalent if the icon ever changes.
 
 ### KGP deprecation warning
 `shared_preferences_android` and `flutter_timezone` still apply the old
@@ -68,3 +85,12 @@ add the slug alongside `drink_name`/`drink_color`.
 - [x] Android backup + device-transfer disabled so the bearer token can't
       follow a restored phone
 - [x] R8 enabled for release, with keep rules for the notification plugin
+- [x] iOS builds and runs — release `Runner.app` + simulator launch verified
+      on Xcode 26.5 / Flutter 3.44.1; plugins resolve via Swift Package
+      Manager, so there is no `pod install` step
+- [x] iOS `Info.plist` given the keys that are not optional: camera and
+      photo-library usage descriptions (`image_picker` crashes the process
+      without them), `ITSAppUsesNonExemptEncryption`, `CFBundleLocalizations`
+- [x] Network failures no longer throw out of `ApiService` — every verb
+      returns the normal `{success: false, status: 0}` envelope and times out
+      at 20 s, so an offline login shows an error instead of a stuck spinner

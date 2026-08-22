@@ -1,12 +1,12 @@
 # Water App — mobile (Flutter)
 
-Android client for the
+Android and iOS client for the
 [water-app](https://github.com/vovafes/water-app) Laravel backend.
 HydroTrack — daily hydration tracking with onboarding, drink logging,
 history, achievements, and per-locale tips.
 
-iOS is partially scaffolded (`ios/` directory exists from
-`flutter create`) but unbuilt — see the bottom of this file.
+iOS builds and runs (verified on Xcode 26.5 / Flutter 3.44.1); what it
+still needs is an Apple Developer account — see [iOS](#ios) at the bottom.
 
 Going to production? [`DEPLOYMENT.md`](DEPLOYMENT.md) has the release
 checklist, the decisions that become irreversible at first publish, and
@@ -186,6 +186,9 @@ before the dashboard.
 | Min SDK | whatever `flutter` resolves (currently 24) |
 | Kotlin JVM target | 17 |
 | Core library desugaring | enabled (required by `flutter_local_notifications`) |
+| Xcode | 26.5 (17F42) |
+| iOS deployment target | 13.0 |
+| iOS plugin manager | Swift Package Manager — no Podfile |
 
 Run `flutter doctor` to verify. Visual Studio is *not* required —
 that warning is for Windows desktop builds, which this project does
@@ -230,20 +233,39 @@ Tracked with the rest of the release work in [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 ## iOS
 
-`ios/` exists but has not been built. iOS builds require a Mac
-(Xcode is macOS-only) and an Apple Developer account ($99/yr) for
-distribution. On a Mac:
+Builds and runs. Verified on macOS 26.5 with Xcode 26.5 and Flutter
+3.44.1: `flutter analyze` clean, 34 tests green, a 20.7 MB
+`Runner.app` from `--release --no-codesign`, and a simulator launch that
+reaches the login screen.
 
 ```bash
-cd ios && pod install && cd ..
 flutter build ipa --release --dart-define=API_BASE_URL=https://<host>
 ```
 
-Before that works, you need to:
-- Edit `ios/Runner/Info.plist` to allow cleartext (or use HTTPS).
-- Add notification capability + permission request for
-  `flutter_local_notifications`.
-- Replace the default `AppIcon.appiconset`.
+There is **no `pod install` step**. Flutter 3.44 resolves the four iOS
+plugins through Swift Package Manager, so no `ios/Podfile` is generated
+and `flutter doctor`'s CocoaPods warning is a red herring. (CocoaPods is
+still worth having on the build Mac — Flutter falls back to it for any
+plugin added later that lacks SPM support.)
+
+Two more corrections to what earlier notes said:
+
+- **Do not add an ATS cleartext exception.** App Transport Security's
+  HTTPS-only default is exactly the posture the Android release build has.
+  Point the app at an HTTPS backend instead.
+- **No push-notification capability is needed.** Reminders are *local*
+  notifications; the permission is requested at runtime and no APNs
+  entitlement is involved.
+
+`AppIcon.appiconset` already carries the branded droplet — the
+`flutter_launcher_icons` config has `ios: true` and has been run.
+
+What is left is account-side, not code: an Apple Developer membership
+($99/yr), a registered bundle ID (`com.vovafes.waterAppMobile` — note it
+differs from Android's `com.vovafes.water_app_mobile`, since iOS bundle
+IDs cannot contain underscores), and a `DEVELOPMENT_TEAM` selected in
+Xcode. [`DEPLOYMENT.md`](DEPLOYMENT.md) has the full submission checklist
+and the remaining gaps.
 
 ## License
 
