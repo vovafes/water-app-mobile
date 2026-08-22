@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,6 +24,11 @@ class ApiService {
 
   /// Public asset root, used to resolve drink icon_path / tip cover URLs.
   static String get assetBaseUrl => '$_envBaseUrl/storage';
+
+  /// Ceiling on any single request. Without it a half-open connection —
+  /// captive portal, backend wedged, phone on a dead cell — leaves the
+  /// caller's spinner up forever with nothing to cancel it.
+  static const Duration _timeout = Duration(seconds: 20);
 
   /// Language sent as `Accept-Language`, kept in sync with the app locale
   /// by the root widget. The backend localizes its own error messages
@@ -57,12 +64,39 @@ class ApiService {
     return headers;
   }
 
+  /// Runs [request] and turns a *transport* failure — DNS, refused
+  /// connection, TLS handshake, timeout — into the same envelope shape a
+  /// non-2xx response produces, with `status: 0` to mark "never reached the
+  /// server". Callers already branch on `success`, so they surface a message
+  /// instead of throwing out of whatever `await` they were sitting on.
+  ///
+  /// This matters beyond tidiness: every provider sets a `_loading` flag
+  /// before the call and clears it after. An exception thrown in between
+  /// skips the clear, and the button stays spinning with no error and no way
+  /// back.
+  static Future<Map<String, dynamic>> _send(
+    Future<http.Response> Function() request,
+  ) async {
+    try {
+      return _parse(await request().timeout(_timeout));
+    } on http.ClientException {
+      return _offline();
+    } on TimeoutException {
+      return _offline();
+    }
+  }
+
+  static Map<String, dynamic> _offline() => {
+    'success': false,
+    'status': 0,
+    'data': {'message': 'No connection to the server'.tr()},
+  };
+
   static Future<Map<String, dynamic>> get(String path) async {
-    final res = await http.get(
-      Uri.parse('$baseUrl$path'),
-      headers: await _headers(),
+    return _send(
+      () async =>
+          http.get(Uri.parse('$baseUrl$path'), headers: await _headers()),
     );
-    return _parse(res);
   }
 
   static Future<Map<String, dynamic>> post(
@@ -70,24 +104,26 @@ class ApiService {
     Map<String, dynamic> body, {
     bool auth = true,
   }) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl$path'),
-      headers: await _headers(auth: auth),
-      body: jsonEncode(body),
+    return _send(
+      () async => http.post(
+        Uri.parse('$baseUrl$path'),
+        headers: await _headers(auth: auth),
+        body: jsonEncode(body),
+      ),
     );
-    return _parse(res);
   }
 
   static Future<Map<String, dynamic>> put(
     String path,
     Map<String, dynamic> body,
   ) async {
-    final res = await http.put(
-      Uri.parse('$baseUrl$path'),
-      headers: await _headers(),
-      body: jsonEncode(body),
+    return _send(
+      () async => http.put(
+        Uri.parse('$baseUrl$path'),
+        headers: await _headers(),
+        body: jsonEncode(body),
+      ),
     );
-    return _parse(res);
   }
 
   /// Uploads a single file as `multipart/form-data` under [field].
@@ -104,8 +140,10 @@ class ApiService {
     if (token != null) request.headers['Authorization'] = 'Bearer $token';
     request.files.add(await http.MultipartFile.fromPath(field, filePath));
 
-    final streamed = await request.send();
-    return _parse(await http.Response.fromStream(streamed));
+    return _send(() async {
+      final streamed = await request.send();
+      return http.Response.fromStream(streamed);
+    });
   }
 
   /// [body] is optional because most DELETEs identify the resource by URL,
@@ -115,12 +153,13 @@ class ApiService {
     String path, {
     Map<String, dynamic>? body,
   }) async {
-    final res = await http.delete(
-      Uri.parse('$baseUrl$path'),
-      headers: await _headers(),
-      body: body == null ? null : jsonEncode(body),
+    return _send(
+      () async => http.delete(
+        Uri.parse('$baseUrl$path'),
+        headers: await _headers(),
+        body: body == null ? null : jsonEncode(body),
+      ),
     );
-    return _parse(res);
   }
 
   static Map<String, dynamic> _parse(http.Response res) {
