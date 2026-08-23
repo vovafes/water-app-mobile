@@ -58,6 +58,19 @@ Kotlin Gradle Plugin instead of Flutter's built-in Kotlin. Non-fatal
 today; a future Flutter release will refuse to build. Upgrade when their
 next majors drop.
 
+### Google / Apple sign-in, and the schema it needs
+Not built on either side. The decision is worth making before the first
+publish, because the backend schema makes retrofitting it expensive once
+real accounts exist — `users.password` is `NOT NULL`, `users.email` is
+unique with no linking table, and account deletion validates
+`current_password`, so a passwordless user could not delete their own
+account. Details and the Apple-specific traps are in the backend's
+`RELEASE.md`.
+
+Scope note: Apple requires Sign in with Apple wherever a third-party login
+is offered, so this is Google *and* Apple or neither. Facebook is not worth
+its compliance overhead here.
+
 ### Premium is client-side only so far
 `PremiumGate` reads an `entitlement` object the backend does not send yet,
 so every account resolves to free. The limits it enforces are UX, not
@@ -143,6 +156,19 @@ add the slug alongside `drink_name`/`drink_color`.
       `PremiumFeature.healthSync` picks Health Connect off-iOS — the one
       string in the app that names a platform, and on a paid screen a wrong
       one is a refund rather than a typo
+- [x] Paywall carries the disclosures both stores require on the purchase
+      screen itself: auto-renewal terms, and links to Terms and Privacy.
+      Lifetime is shown the links without the renewal sentence, because it
+      renews nothing. Covered by tests — this is the class of thing that
+      gets a build rejected, not a style choice
+- [x] An active subscription has a visible way out (Profile → Manage
+      subscription, opening the store's own screen). The app cannot cancel
+      a store subscription; not offering the route is what generates
+      "impossible to cancel" reviews
+- [x] Terms and Privacy reachable from Profile → About without going near
+      the paywall, plus Help
+- [x] Store listing copy for both consoles in all four languages, length
+      checked against the console limits (`STORE_LISTING.md`)
 - [x] Android release verified on-device after Premium, `image_picker` and
       the `ApiService` rewrite landed: R8 build launches clean, backup flags
       off in the shipped artifact, offline login recovers. The permission

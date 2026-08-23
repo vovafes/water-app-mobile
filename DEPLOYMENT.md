@@ -91,6 +91,13 @@ already seen. The `+N` suffix is the versionCode.
       missing is a public host to serve it from, so this reduces to the
       HTTPS item. Note the body is English-only today; the backend list
       tracks whether to translate it.
+- [ ] **Store listing copy.** Written and length-checked for both consoles
+      in all four languages: [`STORE_LISTING.md`](STORE_LISTING.md). Paste
+      from there rather than retyping — several fields sit within a few
+      characters of the limit, and `C:\dev\.qa\check_store_listing.py`
+      re-validates after any edit. Screenshots are **not** done and cannot
+      be written: they need a populated account, shot per language, plus a
+      1024×500 feature graphic for Play.
 - [ ] **Data Safety form.** Declare: email + name (account), health/fitness
       (onboarding measurements), photos (avatar), app activity (drink logs).
       All linked to the account, all deletable. Once billing is wired,
@@ -218,6 +225,14 @@ transport failure threw straight out of `AuthProvider.login()`, skipping
 `_loading = false` — the button spun forever with no error and no way back.
 That path is Android-identical to iOS but had only ever been checked on
 iOS.
+
+**Not yet seen on a device:** the paywall's legal block (renewal terms plus
+the Terms and Privacy links) landed after that run. It is covered by a
+widget test that lays the screen out at 360×640 and fails on a `RenderFlex`
+overflow, so it fits — but the links have never been *tapped* on hardware,
+and they cannot be until the backend is on a reachable host. Add both taps
+to the next on-device pass: a reviewer follows them by hand, and a dead
+legal link on a paid screen is a rejection.
 
 **Watch the ABI when sideloading.** `--target-platform android-arm64` cuts
 the APK from ~60 MB to ~20 MB, but the resulting artifact will not start on
