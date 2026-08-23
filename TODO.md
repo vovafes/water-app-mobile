@@ -34,6 +34,19 @@ delegate. Verify on a real device before release.
 `ios/Runner/<lang>.lproj/InfoPlist.strings` for de/ru/uk and registering
 them in the Xcode project.
 
+### Android: no per-app language in system settings
+iOS declares its four languages in `CFBundleLocalizations`. The Android
+counterpart — `android:localeConfig` pointing at a `locales_config.xml` —
+is missing, so the app never appears in Android 13+'s
+*Settings → Apps → Language*.
+
+Left out on purpose, because it is not a mechanical add. Locale resolves as
+**account locale → in-app picker → device locale**, so a logged-in user
+would set the system language and see nothing change. Decide first whether
+the OS choice should outrank the account's; the manifest line is the easy
+half. Does not affect the store listing — Play reads available languages
+from the bundle's resources.
+
 ### `make-icon.ps1` is Windows-only
 `System.Drawing` plus a hardcoded `C:\dev\...` output path, so the app icon
 cannot be re-rendered on the Mac. Not needed for an iOS build, but there is
@@ -56,6 +69,12 @@ asked directly. See MONETIZATION.md §9 for the server side.
 laid out, and refuses to transact. Replacing it is one class: implement
 `PurchaseService` over `purchases_flutter`, register the three product IDs
 in `PremiumProducts`, and pass the real instance to `PaywallScreen`.
+
+The Play half has an ordering constraint worth knowing before you start:
+the console only opens the *Monetise* section after a build containing the
+billing library has been uploaded to some track, internal testing included.
+So it is HTTPS → upload → create products → license testers → test
+purchases, and the product IDs cannot be renamed afterwards.
 
 ## Backend (water-app)
 
@@ -120,3 +139,12 @@ add the slug alongside `drink_name`/`drink_color`.
 - [x] Network failures no longer throw out of `ApiService` — every verb
       returns the normal `{success: false, status: 0}` envelope and times out
       at 20 s, so an offline login shows an error instead of a stuck spinner
+- [x] Paywall no longer offers Android users Apple Health.
+      `PremiumFeature.healthSync` picks Health Connect off-iOS — the one
+      string in the app that names a platform, and on a paid screen a wrong
+      one is a refund rather than a typo
+- [x] Android release verified on-device after Premium, `image_picker` and
+      the `ApiService` rewrite landed: R8 build launches clean, backup flags
+      off in the shipped artifact, offline login recovers. The permission
+      list in DEPLOYMENT.md now comes from `aapt2 dump badging` on the APK
+      rather than from reading the manifest, which understated it

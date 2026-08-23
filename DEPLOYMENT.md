@@ -8,7 +8,9 @@ The backend has its own list in
 [water-app/RELEASE.md](https://github.com/vovafes/water-app/blob/main/RELEASE.md) —
 several items there block this one.
 
-Checked against the working tree on 2026-08-20.
+Checked against the working tree on 2026-08-23, after Premium, `image_picker`
+and the `ApiService` rewrite landed. Anything below marked *verified* was run
+on a device that day, not read off the source.
 
 ## Build types are not interchangeable
 
@@ -91,18 +93,62 @@ already seen. The `+N` suffix is the versionCode.
       tracks whether to translate it.
 - [ ] **Data Safety form.** Declare: email + name (account), health/fitness
       (onboarding measurements), photos (avatar), app activity (drink logs).
-      All linked to the account, all deletable.
+      All linked to the account, all deletable. Once billing is wired,
+      **purchase history** joins the list — Play treats it as *Financial
+      info*, and it is collected even though the app never sees a card
+      number, because the entitlement is stored against the account.
+- [ ] **Subscription products.** Not creatable yet, and the ordering is not
+      obvious: Play only offers the *Monetise* section once a build
+      containing the billing library has been uploaded to **some** track,
+      internal testing included. So the sequence is
+      *HTTPS host → upload a build with billing → create the three products
+      from `PremiumProducts` → add license testers → test purchases*.
+      Trying to register the IDs first fails with an unhelpful error.
+
+      Keep annual and monthly in **one subscription group**; outside a
+      group, upgrade/downgrade does not work and a user can end up holding
+      two active subscriptions. Lifetime is a non-consumable and sits
+      outside by definition. The IDs are already fixed in
+      `lib/services/purchase_service.dart` and must be typed into the
+      console identically — a product ID cannot be renamed or reused after
+      creation.
 - [ ] **Account deletion.** Already implemented in-app (Profile → Delete
       account, `DELETE /api/v1/profile/account`) and on the web profile page.
       Play asks for a web-reachable deletion URL too — the web profile page
       covers it once the site is public.
 - [ ] **Target API level.** Currently 36, min 24. Play's floor moves every
       August; re-check before submitting.
-- [ ] **Permissions.** Only `INTERNET`, `POST_NOTIFICATIONS` and
-      `RECEIVE_BOOT_COMPLETED`. Reminder scheduling is inexact on purpose,
-      so there is **no** exact-alarm permission and therefore no policy
-      declaration to fill in. Keep it that way — switching to exact alarms
-      would add a review step.
+- [ ] **Permissions.** What the *built APK* declares, which is not the same
+      as what `AndroidManifest.xml` lists — plugins merge their own in:
+
+      | Permission | Source |
+      |---|---|
+      | `INTERNET` | ours |
+      | `POST_NOTIFICATIONS` | ours |
+      | `RECEIVE_BOOT_COMPLETED` | ours |
+      | `VIBRATE` | `flutter_local_notifications` |
+      | `<applicationId>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | AndroidX |
+
+      The last is signature-level and generated per package; it grants
+      nothing to anyone else and needs no declaration. `VIBRATE` is not
+      dangerous and needs no runtime prompt, but it *is* visible on the
+      store listing, so do not be surprised by it.
+
+      Notably **absent**: `image_picker` adds no permission at all. It
+      contributes a `FileProvider` and a Play-services module hook for the
+      backported photo picker, but takes the photo through an intent, so
+      there is no `CAMERA` or storage permission and nothing to justify on
+      the Data Safety form beyond the avatar itself.
+
+      Reminder scheduling is inexact on purpose, so there is **no**
+      exact-alarm permission and therefore no policy declaration to fill
+      in. Keep it that way — switching to exact alarms would add a review
+      step.
+
+      Re-run this check after adding any plugin:
+      ```bash
+      aapt2 dump badging build/app/outputs/flutter-apk/app-release.apk | grep uses-permission
+      ```
 
 ## Data on the device
 
@@ -129,7 +175,7 @@ adb shell dumpsys package com.vovafes.water_app_mobile | grep pkgFlags
 
 ```bash
 flutter analyze                # must be clean
-flutter test                   # 34 tests
+flutter test                   # 50 tests
 ```
 
 Then build the release artifact and actually launch it. R8 only runs in
@@ -147,12 +193,61 @@ adb logcat -d -b crash -t 100
 relies on reflection needs its own keep rule, and the only way to find out
 is this launch test.
 
+If `adb install` fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, a
+profile or debug build is already installed — those are signed with the
+debug key and the release one is not. `adb uninstall` first; `-r` cannot
+cross a signing-key change.
+
+### Last verified
+
+Run on 2026-08-23 against `Pixel_10` (API 36 emulator), after Premium,
+`image_picker` and the `ApiService` rewrite landed:
+
+| Check | Result |
+|---|---|
+| `flutter analyze` | clean |
+| `flutter test` | 50 passed |
+| `flutter build apk --release` | 57.8 MB universal, R8 on |
+| Launch under R8 | login screen renders, no fatals in `-b crash` |
+| `pkgFlags` | `[ HAS_CODE ALLOW_CLEAR_USER_DATA ]` — no `ALLOW_BACKUP` |
+| Offline login | "No connection to the server", button re-enabled |
+
+The offline row is the one worth repeating by hand. The APK was built
+against a deliberately unresolvable host, and before `_send()` existed a
+transport failure threw straight out of `AuthProvider.login()`, skipping
+`_loading = false` — the button spun forever with no error and no way back.
+That path is Android-identical to iOS but had only ever been checked on
+iOS.
+
 **Watch the ABI when sideloading.** `--target-platform android-arm64` cuts
 the APK from ~60 MB to ~20 MB, but the resulting artifact will not start on
 an x86_64 emulator — it dies with
 `libflutter.so is for EM_AARCH64 (183) instead of EM_X86_64 (62)`. That is
 the build, not a bug. Emulator smoke tests need a universal build or
 `--target-platform android-x64`.
+
+## Known Android-side gaps
+
+1. **No `android:localeConfig`.** iOS declares its four languages in
+   `CFBundleLocalizations`; the Android counterpart is a `locales_config.xml`
+   that puts the app in Android 13+'s *Settings → Apps → Language* picker.
+   It is deliberately absent, not forgotten. Locale resolves as **account
+   locale → in-app picker → device locale**, so for a logged-in user the
+   system picker would appear and then silently do nothing, which is worse
+   than not offering it. Adding it means first deciding whether the OS
+   choice outranks the account's — a product decision, not a manifest line.
+   Note this does not affect the store listing: Play reads the available
+   languages from the bundle's resources either way.
+2. **Billing is a stub.** `UnconfiguredPurchaseService` returns
+   `PurchaseResult.unavailable` for every product, so the paywall renders
+   with the planned tiers but cannot transact. Swapping in a real
+   `PurchaseService` is one class (see the subscription-products item
+   above), but it cannot happen before a build is on a Play track.
+3. **Premium is a fence, not a wall.** `FreeLimits` is enforced in the
+   client only; the backend has no `subscriptions` table yet, so the API
+   still answers requests a free tier should not be making. Accepted for
+   the first release, and written down in `premium_gate.dart` so it is not
+   mistaken for enforcement.
 
 ## Still to do
 
