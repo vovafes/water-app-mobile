@@ -1,4 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
 import '../models/entitlement.dart';
 
 /// Everything the free tier is allowed to do, in one place.
@@ -69,7 +70,14 @@ enum PremiumFeature {
     PremiumFeature.allAchievements => 'Unlock every badge'.tr(),
     PremiumFeature.allTips => 'Read the full tips library'.tr(),
     PremiumFeature.csvExport => 'Export your data'.tr(),
-    PremiumFeature.healthSync => 'Sync with Apple Health'.tr(),
+    // The only string in the app that names a platform. Selling an Android
+    // user a sync with Apple Health promises software their phone cannot
+    // run, and on the paywall that is a refund rather than a typo. Health
+    // Connect — not Google Fit — is the current Android surface; the Fit
+    // APIs were superseded by it.
+    PremiumFeature.healthSync => defaultTargetPlatform == TargetPlatform.iOS
+        ? 'Sync with Apple Health'.tr()
+        : 'Sync with Health Connect'.tr(),
   };
 
   String get body => switch (this) {

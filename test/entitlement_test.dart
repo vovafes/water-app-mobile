@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:water_app_mobile/models/entitlement.dart';
 import 'package:water_app_mobile/premium/premium_gate.dart';
@@ -112,6 +113,23 @@ void main() {
       // The backend omits `drink_slug` on log listings (TODO.md), so
       // failing closed would lock drinks the user can already log.
       expect(free.allowsDrink(null), isTrue);
+    });
+  });
+
+  group('PremiumFeature.healthSync names the right platform', () {
+    // The one paywall string that differs per platform. Promising an
+    // Android user Apple Health sells software their phone cannot run,
+    // which on a paid screen is a refund rather than a typo.
+    tearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    test('Android is offered Health Connect', () {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      expect(PremiumFeature.healthSync.prompt, contains('Health Connect'));
+    });
+
+    test('iOS is offered Apple Health', () {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      expect(PremiumFeature.healthSync.prompt, contains('Apple Health'));
     });
   });
 }
