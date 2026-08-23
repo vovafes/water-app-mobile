@@ -8,6 +8,7 @@ import '../../providers/reminder_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../../theme.dart';
+import '../../widgets/legal_footer.dart';
 import '../reminders/reminders_screen.dart';
 import '../paywall/paywall_screen.dart';
 
@@ -468,6 +469,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  // Reachable without a purchase and without an account
+                  // action. A user looking for what they agreed to should
+                  // not have to open the paywall to find it.
+                  _SectionTitle(title: 'About'.tr()),
+                  Card(
+                    child: Column(
+                      children: [
+                        _LegalRow(
+                          icon: Icons.help_outline,
+                          label: 'Help'.tr(),
+                          url: Uri.parse('${ApiService.siteUrl}/help'),
+                        ),
+                        const Divider(height: 1),
+                        _LegalRow(
+                          icon: Icons.description_outlined,
+                          label: 'Terms of Use'.tr(),
+                          url: LegalUrls.terms,
+                        ),
+                        const Divider(height: 1),
+                        _LegalRow(
+                          icon: Icons.shield_outlined,
+                          label: 'Privacy Policy'.tr(),
+                          url: LegalUrls.privacy,
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 24),
                   FilledButton.icon(
                     onPressed: _logout,
@@ -734,6 +763,39 @@ class _SectionTitle extends StatelessWidget {
   );
 }
 
+/// A settings row that leaves the app for a web page.
+///
+/// Failure is surfaced rather than swallowed: these are the pages a user
+/// goes looking for when they want to know what they agreed to or how to
+/// get their data deleted, and a row that does nothing when tapped is
+/// indistinguishable from one that is not there.
+class _LegalRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Uri url;
+
+  const _LegalRow({
+    required this.icon,
+    required this.label,
+    required this.url,
+  });
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+    title: Text(label),
+    trailing: const Icon(Icons.open_in_new, size: 18),
+    onTap: () async {
+      final ok = await openExternal(url);
+      if (!ok && context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not open the page'.tr())));
+      }
+    },
+  );
+}
+
 class _ReadTile extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -971,7 +1033,7 @@ class _PremiumRow extends StatelessWidget {
 
     if (auth.isPremium) {
       final until = auth.entitlement.expiresAt;
-      return Card(
+      final card = Card(
         margin: const EdgeInsets.only(bottom: 20),
         child: ListTile(
           leading: const Icon(
@@ -1000,6 +1062,36 @@ class _PremiumRow extends StatelessWidget {
           ),
         ),
       );
+
+      // A subscription with a renewal date needs a visible way out. The app
+      // cannot cancel it — only the store can — so this hands over to the
+      // store's own screen. Hiding it is what produces "impossible to
+      // cancel" reviews, and both review teams look for the route.
+      if (until != null && !auth.entitlement.cancelled) {
+        return Column(
+          children: [
+            card,
+            Card(
+              margin: const EdgeInsets.only(bottom: 20),
+              child: ListTile(
+                leading: const Icon(Icons.receipt_long_outlined),
+                title: Text('Manage subscription'.tr()),
+                trailing: const Icon(Icons.open_in_new, size: 18),
+                onTap: () async {
+                  final ok = await openExternal(LegalUrls.manageSubscription);
+                  if (!ok && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Could not open the page'.tr())),
+                    );
+                  }
+                },
+              ),
+            ),
+          ],
+        );
+      }
+
+      return card;
     }
 
     return Card(

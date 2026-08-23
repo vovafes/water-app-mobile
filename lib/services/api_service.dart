@@ -25,6 +25,13 @@ class ApiService {
   /// Public asset root, used to resolve drink icon_path / tip cover URLs.
   static String get assetBaseUrl => '$_envBaseUrl/storage';
 
+  /// The web site itself, without `/api/v1`. The legal pages the stores
+  /// require the paywall to link to (`/privacy`, `/terms`) are ordinary web
+  /// routes on the same host, so they follow whatever `API_BASE_URL` the
+  /// build was given rather than being hardcoded to a domain that does not
+  /// exist yet.
+  static String get siteUrl => _envBaseUrl;
+
   /// Ceiling on any single request. Without it a half-open connection —
   /// captive portal, backend wedged, phone on a dead cell — leaves the
   /// caller's spinner up forever with nothing to cancel it.

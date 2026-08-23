@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../services/purchase_service.dart';
 import '../../theme.dart';
+import '../../widgets/legal_footer.dart';
 
 /// Which headline the paywall opens with.
 ///
@@ -614,6 +615,10 @@ class _CallToAction extends StatelessWidget {
             // and both read as a dark pattern to a reviewer.
             child: Text('Continue with the free plan'.tr()),
           ),
+          // Required on the purchase screen itself by Apple 3.1.2 and Play's
+          // subscription policy. Lifetime renews nothing, so it is shown
+          // the links without the renewal sentence.
+          LegalFooter(renewing: p?.tier != PremiumTier.lifetime),
         ],
       ),
     );

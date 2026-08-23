@@ -48,6 +48,10 @@ dependencies:
   table_calendar: ^3.1.2
   easy_localization: ^3.0.7
   image_picker: ^1.2.0
+  # Opens the legal pages and the store's own subscription-management
+  # screen. Both stores require the paywall to link out to Terms and
+  # Privacy, and neither lets an app cancel a subscription itself.
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:

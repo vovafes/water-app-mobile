@@ -130,6 +130,21 @@ void main() {
       reason: 'both stores require the post-trial price on the paywall',
     );
 
+    expect(
+      find.textContaining('renews automatically'),
+      findsOneWidget,
+      reason:
+          'the auto-renewal terms belong on the purchase screen itself, '
+          'not in settings (Apple 3.1.2, Play subscription policy)',
+    );
+
+    expect(
+      find.text('Terms of Use'),
+      findsOneWidget,
+      reason: 'both stores require the EULA to be linked from the paywall',
+    );
+    expect(find.text('Privacy Policy'), findsOneWidget);
+
     await tester.tap(find.text('Restore'));
     await tester.pumpAndSettle();
     expect(purchases.restoreCalls, 1, reason: 'Restore must always work');
@@ -170,6 +185,16 @@ void main() {
     await tester.pumpAndSettle();
     // The one place the word "buy" belongs: it really is a one-off purchase.
     expect(find.text(r'Buy for good — $59.99'), findsOneWidget);
+
+    // ...which is also why it must not carry renewal terms. Lifetime renews
+    // nothing, and saying it does on a paid screen is a false statement
+    // rather than a stray string.
+    expect(find.textContaining('renews automatically'), findsNothing);
+    expect(
+      find.text('Terms of Use'),
+      findsOneWidget,
+      reason: 'the links stay on every plan, only the renewal terms vary',
+    );
 
     // Buying is last again — it pops the screen out from under the test.
     await tester.scrollUntilVisible(find.text('Monthly'), 120);
@@ -213,5 +238,25 @@ void main() {
     await tester.tap(find.text('Restore'));
     await tester.pumpAndSettle();
     expect(find.byType(PaywallScreen), findsNothing);
+
+    // ---- It still fits on a small phone -------------------------------
+    // The legal block made the bottom bar noticeably taller, and the store
+    // disclosures wrap to more lines the narrower the screen gets. A
+    // RenderFlex overflow there would paint the required text under a
+    // yellow-and-black bar, which is a rejection with extra steps.
+
+    tester.view.physicalSize = const Size(360 * 3, 640 * 3);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await show(_FakePurchases());
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'the paywall must lay out at 360x640 without overflowing',
+    );
+    expect(find.text('Terms of Use'), findsOneWidget);
+    expect(find.textContaining('renews automatically'), findsOneWidget);
   });
 }
