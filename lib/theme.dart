@@ -229,20 +229,113 @@ ThemeData buildDarkTheme() {
   );
 }
 
+/// The type scale.
+///
+/// Two rules run through it, and both are size-dependent — which is the
+/// whole point, because a single `letterSpacing` for the whole app is
+/// necessarily wrong at one end or the other:
+///
+///   * **Tracking tightens as type grows.** Letters read too far apart at
+///     display sizes and too tight at caption sizes, so display roles carry
+///     negative tracking, body sits near zero, and the smallest labels get
+///     a positive nudge to stay legible.
+///   * **Leading loosens as type shrinks.** Headlines are set tight because
+///     they are one or two lines; body copy needs room between lines to be
+///     read in paragraphs.
+///
+/// Sizes follow Material 3's scale so nothing that already relies on a role
+/// changes shape; only the tracking and leading are ours.
 TextTheme _baseTextTheme(Color base) => TextTheme(
-  displayLarge: TextStyle(color: base),
-  displayMedium: TextStyle(color: base),
-  displaySmall: TextStyle(color: base),
-  headlineLarge: TextStyle(color: base, fontWeight: FontWeight.w700),
-  headlineMedium: TextStyle(color: base, fontWeight: FontWeight.w700),
-  headlineSmall: TextStyle(color: base, fontWeight: FontWeight.w700),
-  titleLarge: TextStyle(color: base, fontWeight: FontWeight.w600),
-  titleMedium: TextStyle(color: base, fontWeight: FontWeight.w600),
-  titleSmall: TextStyle(color: base, fontWeight: FontWeight.w600),
-  bodyLarge: TextStyle(color: base),
-  bodyMedium: TextStyle(color: base),
-  bodySmall: TextStyle(color: base),
-  labelLarge: TextStyle(color: base),
-  labelMedium: TextStyle(color: base),
-  labelSmall: TextStyle(color: base),
+  displayLarge: TextStyle(
+    color: base,
+    fontSize: 57,
+    height: 1.12,
+    letterSpacing: -1.0,
+    fontWeight: FontWeight.w700,
+  ),
+  displayMedium: TextStyle(
+    color: base,
+    fontSize: 45,
+    height: 1.16,
+    letterSpacing: -0.8,
+    fontWeight: FontWeight.w700,
+  ),
+  displaySmall: TextStyle(
+    color: base,
+    fontSize: 36,
+    height: 1.22,
+    letterSpacing: -0.6,
+    fontWeight: FontWeight.w700,
+  ),
+  headlineLarge: TextStyle(
+    color: base,
+    fontSize: 32,
+    height: 1.25,
+    letterSpacing: -0.5,
+    fontWeight: FontWeight.w700,
+  ),
+  headlineMedium: TextStyle(
+    color: base,
+    fontSize: 28,
+    height: 1.29,
+    letterSpacing: -0.4,
+    fontWeight: FontWeight.w700,
+  ),
+  headlineSmall: TextStyle(
+    color: base,
+    fontSize: 24,
+    height: 1.33,
+    letterSpacing: -0.25,
+    fontWeight: FontWeight.w700,
+  ),
+  titleLarge: TextStyle(
+    color: base,
+    fontSize: 22,
+    height: 1.27,
+    letterSpacing: -0.15,
+    fontWeight: FontWeight.w600,
+  ),
+  titleMedium: TextStyle(
+    color: base,
+    fontSize: 16,
+    height: 1.5,
+    letterSpacing: 0,
+    fontWeight: FontWeight.w600,
+  ),
+  titleSmall: TextStyle(
+    color: base,
+    fontSize: 14,
+    height: 1.43,
+    letterSpacing: 0.1,
+    fontWeight: FontWeight.w600,
+  ),
+  bodyLarge: TextStyle(color: base, fontSize: 16, height: 1.5),
+  bodyMedium: TextStyle(color: base, fontSize: 14, height: 1.43),
+  bodySmall: TextStyle(
+    color: base,
+    fontSize: 12,
+    height: 1.4,
+    letterSpacing: 0.2,
+  ),
+  labelLarge: TextStyle(
+    color: base,
+    fontSize: 14,
+    height: 1.43,
+    letterSpacing: 0.1,
+    fontWeight: FontWeight.w600,
+  ),
+  labelMedium: TextStyle(
+    color: base,
+    fontSize: 12,
+    height: 1.33,
+    letterSpacing: 0.3,
+    fontWeight: FontWeight.w500,
+  ),
+  labelSmall: TextStyle(
+    color: base,
+    fontSize: 11,
+    height: 1.45,
+    letterSpacing: 0.4,
+    fontWeight: FontWeight.w500,
+  ),
 );

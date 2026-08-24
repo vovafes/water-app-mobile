@@ -333,6 +333,7 @@ class _StreakHero extends StatelessWidget {
                         color: Colors.white,
                         fontSize: 44,
                         fontWeight: FontWeight.w800,
+                        letterSpacing: -0.8,
                         height: 1,
                       ),
                     ),

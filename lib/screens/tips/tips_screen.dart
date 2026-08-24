@@ -329,6 +329,7 @@ class _TipReader extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
+                    letterSpacing: -0.35,
                     height: 1.2,
                   ),
                 ),

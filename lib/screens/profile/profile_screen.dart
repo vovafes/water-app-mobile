@@ -941,6 +941,7 @@ class _NumberPickerTile extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.w700,
+                        letterSpacing: -0.6,
                       ),
                     ),
                     Slider(

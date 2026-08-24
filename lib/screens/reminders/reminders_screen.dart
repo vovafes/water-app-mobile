@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/reminder.dart';
@@ -585,7 +586,13 @@ class _IntervalTile extends StatelessWidget {
           divisions:
               (Reminder.maxIntervalMinutes - Reminder.minIntervalMinutes) ~/ 15,
           label: '$minutes',
-          onChanged: (v) => onChanged((v / 15).round() * 15),
+          onChanged: (v) {
+            final snapped = (v / 15).round() * 15;
+            // A detent the finger can feel. Fired only when the value
+            // actually changes, or dragging would buzz continuously.
+            if (snapped != minutes) HapticFeedback.selectionClick();
+            onChanged(snapped);
+          },
         ),
       ],
     ),

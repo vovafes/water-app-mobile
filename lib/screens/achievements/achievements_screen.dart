@@ -418,6 +418,7 @@ class _BadgeTile extends StatelessWidget {
                 '⭐ ${achievement.points}',
                 style: TextStyle(
                   fontSize: 10,
+                  letterSpacing: 0.3,
                   fontWeight: unlocked ? FontWeight.w600 : FontWeight.normal,
                   color: unlocked
                       ? Colors.white.withValues(alpha: 0.95)

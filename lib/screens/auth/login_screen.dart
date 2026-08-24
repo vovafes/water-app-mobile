@@ -64,6 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
+                    letterSpacing: -0.4,
                     color: cs.onSurface,
                   ),
                 ),

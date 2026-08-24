@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../models/entitlement.dart';
 import '../../providers/auth_provider.dart';
@@ -104,6 +105,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
     switch (result) {
       case PurchaseResult.success:
+        HapticFeedback.mediumImpact();
         // The store said yes; the backend still has the final word. Pulling
         // /auth/me is what turns the purchase into an entitlement.
         await context.read<AuthProvider>().refreshUser();

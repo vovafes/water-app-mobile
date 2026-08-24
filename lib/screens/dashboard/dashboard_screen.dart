@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../models/drink.dart';
 import '../../theme.dart';
 import '../../widgets/drink_icon.dart';
+import '../../widgets/motion.dart';
 import '../stats/streak_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -69,7 +71,6 @@ class _HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pct = (dash.progress * 100).round();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 22),
       decoration: BoxDecoration(
@@ -112,41 +113,53 @@ class _HeroCard extends StatelessWidget {
               SizedBox(
                 width: 84,
                 height: 84,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 84,
-                      height: 84,
-                      child: CircularProgressIndicator(
-                        value: dash.progress,
-                        strokeWidth: 7,
-                        backgroundColor: Colors.white.withValues(alpha: 0.22),
-                        color: Colors.white,
+                // One tween drives both the arc and the percentage, so the
+                // two cannot drift apart mid-fill. This is the app's whole
+                // reward for logging a drink; it earns the slow duration.
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween<double>(end: dash.progress),
+                  duration: Motion.of(context, Motion.slow),
+                  curve: Motion.curve,
+                  builder: (context, progress, _) => Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 84,
+                        height: 84,
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 7,
+                          backgroundColor: Colors.white.withValues(alpha: 0.22),
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '$pct%',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 19,
-                            fontWeight: FontWeight.w700,
-                            height: 1.1,
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${(progress * 100).round()}%',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w700,
+                              height: 1.1,
+                            ),
                           ),
-                        ),
-                        Text(
-                          'today'.tr(),
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.8),
-                            fontSize: 10,
+                          Text(
+                            'today'.tr(),
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 10,
+                              // Positive tracking rather than a bigger
+                              // size: the ring is only 84px across, and
+                              // this has to sit under a 19px number.
+                              letterSpacing: 0.4,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 18),
@@ -155,27 +168,34 @@ class _HeroCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: '${dash.consumedMl.toInt()}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w700,
-                              height: 1.1,
+                    // The total counts up; the goal it is measured against
+                    // does not move, so only the first half is animated.
+                    AnimatedCount(
+                      value: dash.consumedMl,
+                      duration: Motion.slow,
+                      builder: (context, ml) => Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '$ml',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                height: 1.1,
+                                letterSpacing: -0.4,
+                              ),
                             ),
-                          ),
-                          TextSpan(
-                            text: ' / ${dash.targetMl.toInt()} ml',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.85),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
+                            TextSpan(
+                              text: ' / ${dash.targetMl.toInt()} ml',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -383,23 +403,42 @@ class _VolumeSheetState extends State<_VolumeSheet> {
     super.dispose();
   }
 
+  /// Records the drink and gets out of the way in the same frame.
+  ///
+  /// Nothing here waits for the network: [DashboardProvider.logDrink] moves
+  /// the totals first and reconciles behind the user's back. The
+  /// confirmation is the ring filling in behind the closing sheet plus the
+  /// tap in the hand — a snackbar saying "250 ml logged" on top of that
+  /// would be both redundant and, on a request that later fails, a lie.
+  /// Only the failure is worth a message.
   Future<void> _log(int ml) async {
     if (_submitting) return;
-    setState(() => _submitting = true);
-    final ok = await widget.dash.logDrink(widget.drink.id, ml.toDouble());
-    if (!mounted) return;
+    _submitting = true;
+
+    // Both have to be read before the sheet's element is torn down.
+    final messenger = ScaffoldMessenger.of(context);
+    final errorColor = Theme.of(context).colorScheme.error;
+
+    HapticFeedback.lightImpact();
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
+
+    final wasComplete = widget.dash.completedGoal;
+    // Deliberately not awaited yet: an async function body runs
+    // synchronously up to its first `await`, so by the time this returns
+    // the optimistic totals are already in. That lets the "goal reached"
+    // haptic land with the animation instead of a round-trip later.
+    final pending = widget.dash.logDrink(widget.drink.id, ml.toDouble());
+    if (!wasComplete && widget.dash.completedGoal) {
+      HapticFeedback.mediumImpact();
+    }
+
+    if (await pending) return;
+
+    messenger.showSnackBar(
       SnackBar(
-        content: Text(
-          ok
-              ? '${context.tr('{ml} ml logged', namedArgs: {'ml': '$ml'})} 💧'
-              : context.tr('Failed to log drink'),
-        ),
-        backgroundColor: ok
-            ? BrandColors.emerald500
-            : Theme.of(context).colorScheme.error,
-        duration: const Duration(seconds: 2),
+        content: Text('Failed to log drink'.tr()),
+        backgroundColor: errorColor,
+        duration: const Duration(seconds: 3),
       ),
     );
   }
