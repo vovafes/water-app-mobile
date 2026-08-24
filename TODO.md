@@ -47,6 +47,19 @@ the OS choice should outrank the account's; the manifest line is the easy
 half. Does not affect the store listing — Play reads available languages
 from the bundle's resources.
 
+### Type scale exists but most screens still bypass it
+`theme.dart`'s `TextTheme` now carries real sizes, per-size tracking and
+leading, but ~85 call sites still hardcode `fontSize:` inline — 23 distinct
+values between 9 and 130. Only the display-size text and the two smallest
+labels were given tracking by hand. The rest is a mechanical pass: replace
+each inline `TextStyle(fontSize: n, ...)` with the nearest role plus
+`copyWith`. Worth doing per screen, with eyes on the result, rather than in
+one sweep — there are no golden tests to catch a regression.
+
+Related: fixed `SizedBox(height: 44)`-style metrics around text will still
+break at large system font sizes. `main.dart` clamps text scaling for the
+nav bar only.
+
 ### `make-icon.ps1` is Windows-only
 `System.Drawing` plus a hardcoded `C:\dev\...` output path, so the app icon
 cannot be re-rendered on the Mac. Not needed for an iOS build, but there is
@@ -169,6 +182,18 @@ add the slug alongside `drink_name`/`drink_color`.
       the paywall, plus Help
 - [x] Store listing copy for both consoles in all four languages, length
       checked against the console limits (`STORE_LISTING.md`)
+- [x] Logging a drink no longer waits on the network. The totals move in the
+      same frame as the tap and reconcile behind the user; a failed or
+      offline write rolls back whole. Cut three sequential round-trips to
+      one, and stopped the first drink of the day blanking the dashboard to
+      a spinner
+- [x] The progress ring and the daily total animate to their new value
+      instead of cutting to it, driven by one tween so they cannot drift
+      apart. Reduced motion is honoured through `Motion.of`
+- [x] Haptics on the four moments that earn them: drink logged, goal
+      reached, purchase confirmed, reminder-interval detent
+- [x] `drink_logs.source` reports the real platform — it was hardcoded to
+      `android`, which would have mislabelled every log made on an iPhone
 - [x] Android release verified on-device after Premium, `image_picker` and
       the `ApiService` rewrite landed: R8 build launches clean, backup flags
       off in the shipped artifact, offline login recovers. The permission

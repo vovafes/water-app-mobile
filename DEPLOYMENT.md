@@ -8,9 +8,11 @@ The backend has its own list in
 [water-app/RELEASE.md](https://github.com/vovafes/water-app/blob/main/RELEASE.md) —
 several items there block this one.
 
-Checked against the working tree on 2026-08-23, after Premium, `image_picker`
-and the `ApiService` rewrite landed. Anything below marked *verified* was run
-on a device that day, not read off the source.
+Checked against the working tree on 2026-08-24, after Premium, `image_picker`,
+the `ApiService` rewrite and the optimistic-write/motion pass landed. Anything
+below marked *verified* was run on a device on the date given beside it, not
+read off the source — the two dates differ, and the gap is listed under
+[Not yet seen on a device](#not-yet-seen-on-a-device).
 
 ## Build types are not interchangeable
 
@@ -94,8 +96,11 @@ already seen. The `+N` suffix is the versionCode.
 - [ ] **Store listing copy.** Written and length-checked for both consoles
       in all four languages: [`STORE_LISTING.md`](STORE_LISTING.md). Paste
       from there rather than retyping — several fields sit within a few
-      characters of the limit, and `C:\dev\.qa\check_store_listing.py`
-      re-validates after any edit. Screenshots are **not** done and cannot
+      characters of the limit, and `python tool/check_store_listing.py`
+      re-validates after any edit (24 fields, exits non-zero on a problem).
+      It also catches U+FFFD replacement characters, which is how two
+      corrupted Ukrainian words once survived a read-through. Screenshots
+      are **not** done and cannot
       be written: they need a populated account, shot per language, plus a
       1024×500 feature graphic for Play.
 - [ ] **Data Safety form.** Declare: email + name (account), health/fitness
@@ -152,6 +157,12 @@ already seen. The `+N` suffix is the versionCode.
       in. Keep it that way — switching to exact alarms would add a review
       step.
 
+      The haptics added alongside the drink-logging rework add **no**
+      permission either. `HapticFeedback` goes through the view's
+      `performHapticFeedback`, not the vibrator service, so it needs
+      nothing declared. The `VIBRATE` line above is still
+      `flutter_local_notifications`' and would be there regardless.
+
       Re-run this check after adding any plugin:
       ```bash
       aapt2 dump badging build/app/outputs/flutter-apk/app-release.apk | grep uses-permission
@@ -182,7 +193,7 @@ adb shell dumpsys package com.vovafes.water_app_mobile | grep pkgFlags
 
 ```bash
 flutter analyze                # must be clean
-flutter test                   # 50 tests
+flutter test                   # 63 tests
 ```
 
 Then build the release artifact and actually launch it. R8 only runs in
@@ -219,6 +230,10 @@ Run on 2026-08-23 against `Pixel_10` (API 36 emulator), after Premium,
 | `pkgFlags` | `[ HAS_CODE ALLOW_CLEAR_USER_DATA ]` — no `ALLOW_BACKUP` |
 | Offline login | "No connection to the server", button re-enabled |
 
+This table is a record of one run, not a running total — leave the numbers
+alone when they go stale. The suite is 63 tests as of 2026-08-24; the 50
+above is what it was on the day the APK in the row below it was built.
+
 The offline row is the one worth repeating by hand. The APK was built
 against a deliberately unresolvable host, and before `_send()` existed a
 transport failure threw straight out of `AuthProvider.login()`, skipping
@@ -226,13 +241,35 @@ transport failure threw straight out of `AuthProvider.login()`, skipping
 That path is Android-identical to iOS but had only ever been checked on
 iOS.
 
-**Not yet seen on a device:** the paywall's legal block (renewal terms plus
-the Terms and Privacy links) landed after that run. It is covered by a
-widget test that lays the screen out at 360×640 and fails on a `RenderFlex`
-overflow, so it fits — but the links have never been *tapped* on hardware,
-and they cannot be until the backend is on a reachable host. Add both taps
-to the next on-device pass: a reviewer follows them by hand, and a dead
-legal link on a paid screen is a rejection.
+**Not yet seen on a device.** Three things landed after that run and have
+only ever been exercised in the test suite.
+
+*The paywall's legal block* — renewal terms plus the Terms and Privacy
+links. A widget test lays the screen out at 360×640 and fails on a
+`RenderFlex` overflow, so it fits; but the links have never been *tapped*
+on hardware, and they cannot be until the backend is on a reachable host.
+Add both taps to the next on-device pass: a reviewer follows them by hand,
+and a dead legal link on a paid screen is a rejection.
+
+*The optimistic drink write.* The totals now move in the same frame as the
+tap and the request settles behind the user. The happy path is the easy
+half — the one to actually check is the failure: point the build at an
+unreachable host, or stop the backend mid-session, and log a glass. The
+ring and the number must jump forward, then roll back whole, with an error
+snackbar. This is a *new* visible state; before the rework a failed write
+simply never moved anything. Nine tests in
+`test/dashboard_optimistic_test.dart` cover the arithmetic and the
+rollback, but nothing covers how it looks.
+
+*The motion and the haptics.* The progress ring and the daily total animate
+to their new value over 650 ms and honour reduced motion; four moments
+buzz — drink logged, goal reached, purchase confirmed, reminder-interval
+detent. Neither can be judged from a test. On the device, check three
+things: that logging two drinks in quick succession makes the second count
+continue from the number on screen instead of jumping back, that the goal
+haptic fires on the crossing rather than a beat late, and that
+*Settings → Accessibility → Remove animations* leaves the totals correct
+while stilling the motion.
 
 **Watch the ABI when sideloading.** `--target-platform android-arm64` cuts
 the APK from ~60 MB to ~20 MB, but the resulting artifact will not start on
