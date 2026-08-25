@@ -105,52 +105,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /// every log, so it asks for the password rather than a bare "are you
   /// sure" — the same bar the web's delete-user form sets.
   Future<void> _deleteAccount() async {
-    final controller = TextEditingController();
-    final confirmed = await showDialog<bool>(
+    // The dialog owns its own controller and returns the password as its
+    // result. Keeping the controller out here and disposing it once
+    // `showDialog` resolves is the obvious-looking version and it crashes:
+    // the future completes when the route is popped, but the dialog keeps
+    // rebuilding through its ~150 ms exit transition, so the TextField
+    // reaches for a controller that is already dead. Cancel took the whole
+    // app to a red screen.
+    final password = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Delete account'.tr()),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // One literal, deliberately not split across lines: the i18n
-            // guard test reads the key straight out of the source, and
-            // adjacent-string concatenation would hide half of it.
-            Text(
-              'This permanently deletes your account and all of your data. This cannot be undone.'
-                  .tr(),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              obscureText: true,
-              autofocus: true,
-              decoration: InputDecoration(
-                labelText: 'Password'.tr(),
-                border: const OutlineInputBorder(),
-              ),
-              onSubmitted: (_) => Navigator.pop(ctx, true),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel'.tr()),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: BrandColors.rose500),
-            child: Text('Delete account'.tr()),
-          ),
-        ],
-      ),
+      builder: (_) => const _DeleteAccountDialog(),
     );
 
-    final password = controller.text;
-    controller.dispose();
-    if (confirmed != true || password.isEmpty || !mounted) return;
+    if (password == null || password.isEmpty || !mounted) return;
 
     // Drop the local notification queue before the account goes away, or
     // the phone keeps nagging on behalf of a user that no longer exists.
@@ -250,7 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const Divider(height: 1),
                           _NumberPickerTile(
                             icon: Icons.water_drop,
-                            label: '${'Daily goal'.tr()} (ml)',
+                            label: '${'Daily goal'.tr()} (${'ml'.tr()})',
                             value: _intOf('manual_target_ml') ?? 2000,
                             min: 500,
                             max: 10000,
@@ -480,19 +447,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _LegalRow(
                           icon: Icons.help_outline,
                           label: 'Help'.tr(),
-                          url: Uri.parse('${ApiService.siteUrl}/help'),
+                          url: LegalUrls.page(
+                            '/help',
+                            context.locale.languageCode,
+                          ),
                         ),
                         const Divider(height: 1),
                         _LegalRow(
                           icon: Icons.description_outlined,
                           label: 'Terms of Use'.tr(),
-                          url: LegalUrls.terms,
+                          url: LegalUrls.terms(context.locale.languageCode),
                         ),
                         const Divider(height: 1),
                         _LegalRow(
                           icon: Icons.shield_outlined,
                           label: 'Privacy Policy'.tr(),
-                          url: LegalUrls.privacy,
+                          url: LegalUrls.privacy(context.locale.languageCode),
                         ),
                       ],
                     ),
@@ -548,12 +518,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final manual = _profile?['manual_target_ml'];
     final mode = _profile?['target_mode'];
     if (mode == 'manual' && manual is num) {
-      return '${manual.toInt()} ml (${'Manual'.tr().toLowerCase()})';
+      return '${manual.toInt()} ${'ml'.tr()} (${'Manual'.tr().toLowerCase()})';
     }
     if (_computedTargetMl != null) {
-      return '$_computedTargetMl ml (${'Auto'.tr().toLowerCase()})';
+      return '$_computedTargetMl ${'ml'.tr()} (${'Auto'.tr().toLowerCase()})';
     }
-    if (manual is num) return '${manual.toInt()} ml';
+    if (manual is num) return '${manual.toInt()} ${'ml'.tr()}';
     return '—';
   }
 }
@@ -763,6 +733,71 @@ class _SectionTitle extends StatelessWidget {
   );
 }
 
+/// Password confirmation for account deletion.
+///
+/// Stateful only so the controller has a lifetime tied to the dialog rather
+/// than to the caller's `await`. Pops the typed password on confirm and
+/// null on cancel, so the caller never has to touch the controller — which
+/// is what made the previous version crash on Cancel.
+class _DeleteAccountDialog extends StatefulWidget {
+  const _DeleteAccountDialog();
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _confirm() => Navigator.pop(context, _controller.text);
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text('Delete account'.tr()),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // One literal, deliberately not split across lines: the i18n
+        // guard test reads the key straight out of the source, and
+        // adjacent-string concatenation would hide half of it.
+        Text(
+          'This permanently deletes your account and all of your data. This cannot be undone.'
+              .tr(),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _controller,
+          obscureText: true,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: 'Password'.tr(),
+            border: const OutlineInputBorder(),
+          ),
+          onSubmitted: (_) => _confirm(),
+        ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: Text('Cancel'.tr()),
+      ),
+      FilledButton(
+        onPressed: _confirm,
+        style: FilledButton.styleFrom(backgroundColor: BrandColors.rose500),
+        child: Text('Delete account'.tr()),
+      ),
+    ],
+  );
+}
+
 /// A settings row that leaves the app for a web page.
 ///
 /// Failure is surfaced rather than swallowed: these are the pages a user
@@ -774,11 +809,7 @@ class _LegalRow extends StatelessWidget {
   final String label;
   final Uri url;
 
-  const _LegalRow({
-    required this.icon,
-    required this.label,
-    required this.url,
-  });
+  const _LegalRow({required this.icon, required this.label, required this.url});
 
   @override
   Widget build(BuildContext context) => ListTile(

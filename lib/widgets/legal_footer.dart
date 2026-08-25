@@ -7,14 +7,24 @@ import '../services/api_service.dart';
 
 /// The URLs a paid screen is required to reach.
 ///
-/// The legal pages follow `API_BASE_URL` rather than a hardcoded domain,
-/// because the domain does not exist yet and a link to the wrong host is
-/// worse than one that moves with the build.
+/// The legal pages come from `SITE_URL`, which a release build must set to
+/// the public https domain — a store reviewer opens these links by hand,
+/// and an IP address behind a "Not secure" warning fails review.
 class LegalUrls {
   const LegalUrls._();
 
-  static Uri get privacy => Uri.parse('${ApiService.siteUrl}/privacy');
-  static Uri get terms => Uri.parse('${ApiService.siteUrl}/terms');
+  /// A site page in the language the app is running in.
+  ///
+  /// These open in an external browser, which sends its own
+  /// `Accept-Language` — so without `lang` a reader using the app in Russian
+  /// gets English Terms. The backend's SetLocale middleware reads it.
+  static Uri page(String path, String languageCode) =>
+      Uri.parse(
+        '${ApiService.siteUrl}$path',
+      ).replace(queryParameters: {'lang': languageCode});
+
+  static Uri privacy(String languageCode) => page('/privacy', languageCode);
+  static Uri terms(String languageCode) => page('/terms', languageCode);
 
   /// Where a subscriber actually cancels.
   ///
@@ -82,9 +92,15 @@ class LegalFooter extends StatelessWidget {
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            _LegalLink(label: 'Terms of Use'.tr(), url: LegalUrls.terms),
+            _LegalLink(
+              label: 'Terms of Use'.tr(),
+              url: LegalUrls.terms(context.locale.languageCode),
+            ),
             Text('·', style: muted),
-            _LegalLink(label: 'Privacy Policy'.tr(), url: LegalUrls.privacy),
+            _LegalLink(
+              label: 'Privacy Policy'.tr(),
+              url: LegalUrls.privacy(context.locale.languageCode),
+            ),
           ],
         ),
       ],

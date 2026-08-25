@@ -142,17 +142,24 @@ class _StreakDetailScreenState extends State<StreakDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Streak'.tr()),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
+        // BackButton rather than a bare IconButton: the plain icon ships
+        // with no tooltip, so it is the one unlabelled control in the app
+        // and a screen reader announces nothing for it.
+        leading: const BackButton(),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                // Pushed route, so nothing below reserves room for the
+                // navigation bar — the last card would end up under it.
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  16 + MediaQuery.viewPaddingOf(context).bottom,
+                ),
                 children: [
                   _StreakHero(
                     streak: _streak,
@@ -186,6 +193,18 @@ class _StreakDetailScreenState extends State<StreakDetailScreen> {
                           return s == null ? [] : [s];
                         },
                         startingDayOfWeek: StartingDayOfWeek.monday,
+                        // TableCalendar defaults to en_US regardless of the
+                        // app locale, so the month title and the weekday
+                        // row stayed English on an otherwise Russian
+                        // screen. `initializeDateFormatting()` in main.dart
+                        // has already loaded the symbols for every locale.
+                        locale: context.locale.languageCode,
+                        // Month is the only format offered, so a vertical
+                        // drag has nothing to switch to — but TableCalendar
+                        // still claims it by default, and the calendar fills
+                        // most of the screen. The page then refuses to
+                        // scroll anywhere the thumb naturally lands.
+                        availableGestures: AvailableGestures.horizontalSwipe,
                         availableCalendarFormats: const {
                           CalendarFormat.month: 'Month',
                         },
@@ -517,7 +536,7 @@ class _DayDetail extends StatelessWidget {
                     child: _StatBlock(
                       label: 'Consumed'.tr(),
                       value: '${stat!.consumedMl}',
-                      suffix: 'ml',
+                      suffix: 'ml'.tr(),
                       color: cs.primary,
                     ),
                   ),
@@ -526,7 +545,7 @@ class _DayDetail extends StatelessWidget {
                     child: _StatBlock(
                       label: 'Hydration'.tr(),
                       value: '${stat!.hydrationMl}',
-                      suffix: 'ml',
+                      suffix: 'ml'.tr(),
                       color: BrandColors.cyan500,
                     ),
                   ),
@@ -549,9 +568,9 @@ class _DayDetail extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 context.tr(
-                  'Target: {ml} ml · {percent}% hydrated',
+                  'Target: {target} ml · {percent}% hydrated',
                   namedArgs: {
-                    'ml': '${stat!.targetMl}',
+                    'target': '${stat!.targetMl}',
                     'percent': '${stat!.hydrationPercent}',
                   },
                 ),
