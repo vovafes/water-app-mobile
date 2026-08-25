@@ -319,7 +319,7 @@ class _DayBlock extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      '$total ml',
+                      '$total ${'ml'.tr()}',
                       style: TextStyle(
                         color: cs.onPrimaryContainer,
                         fontWeight: FontWeight.w700,
@@ -395,7 +395,7 @@ class _DayBlock extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          '${log.volumeMl.toInt()} ml',
+                          '${log.volumeMl.toInt()} ${'ml'.tr()}',
                           style: TextStyle(
                             color: tone.text,
                             fontWeight: FontWeight.w700,

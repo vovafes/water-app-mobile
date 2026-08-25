@@ -187,7 +187,7 @@ class _HeroCard extends StatelessWidget {
                               ),
                             ),
                             TextSpan(
-                              text: ' / ${dash.targetMl.toInt()} ml',
+                              text: ' / ${dash.targetMl.toInt()} ${'ml'.tr()}',
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.85),
                                 fontSize: 13,
@@ -453,155 +453,160 @@ class _VolumeSheetState extends State<_VolumeSheet> {
         : const [200, 250, 330, 500];
     final cs = Theme.of(context).colorScheme;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        16,
-        20,
-        MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: cs.outline,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
+    // viewInsets is the keyboard and nothing else; the navigation bar lives
+    // in viewPadding, which SafeArea reads. Without it the Log button sits
+    // half under the system bar and half its taps never arrive.
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16,
+          20,
+          MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
-                  color: tone.rail,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: DrinkIcon(
-                  slug: drink.slug,
-                  color: Colors.white,
-                  size: 28,
+                  color: cs.outline,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.tr(drink.name),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      '${drink.hydrationMultiplier.toStringAsFixed(drink.hydrationMultiplier == drink.hydrationMultiplier.roundToDouble() ? 0 : 2)}× ${context.tr('hydration')}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: cs.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Choose amount'.tr(),
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurface.withValues(alpha: 0.7),
             ),
-          ),
-          const SizedBox(height: 8),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 1.6,
-            ),
-            itemCount: volumes.length,
-            itemBuilder: (context, i) {
-              final v = volumes[i];
-              return InkWell(
-                onTap: _submitting ? null : () => _log(v),
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: cs.outline),
+                    color: tone.rail,
+                    shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
-                  child: Text(
-                    '$v ml',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                  child: DrinkIcon(
+                    slug: drink.slug,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr(drink.name),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        '${drink.hydrationMultiplier.toStringAsFixed(drink.hydrationMultiplier == drink.hydrationMultiplier.roundToDouble() ? 0 : 2)}× ${context.tr('hydration')}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cs.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Choose amount'.tr(),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 8),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 1.6,
+              ),
+              itemCount: volumes.length,
+              itemBuilder: (context, i) {
+                final v = volumes[i];
+                return InkWell(
+                  onTap: _submitting ? null : () => _log(v),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: cs.outline),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '$v ${'ml'.tr()}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Custom amount'.tr(),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _custom,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      hintText: 'ml'.tr(),
+                      isDense: true,
                     ),
                   ),
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Custom amount'.tr(),
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurface.withValues(alpha: 0.7),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _custom,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    hintText: 'ml',
-                    isDense: true,
-                  ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: _submitting
+                      ? null
+                      : () {
+                          final v = int.tryParse(_custom.text);
+                          if (v == null || v < 10 || v > 5000) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Enter 10–5000 ml'.tr())),
+                            );
+                            return;
+                          }
+                          _log(v);
+                        },
+                  child: Text('Log'.tr()),
                 ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton(
-                onPressed: _submitting
-                    ? null
-                    : () {
-                        final v = int.tryParse(_custom.text);
-                        if (v == null || v < 10 || v > 5000) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Enter 10–5000 ml'.tr())),
-                          );
-                          return;
-                        }
-                        _log(v);
-                      },
-                child: Text('Log'.tr()),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -643,7 +648,7 @@ class _RecentLogsCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      '${dash.logsCount} · ${dash.consumedMl.toInt()} ml',
+                      '${dash.logsCount} · ${dash.consumedMl.toInt()} ${'ml'.tr()}',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -732,7 +737,7 @@ class _RecentLogsCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          '${log.volumeMl.toInt()} ml',
+                          '${log.volumeMl.toInt()} ${'ml'.tr()}',
                           style: TextStyle(
                             color: tone.text,
                             fontWeight: FontWeight.w700,

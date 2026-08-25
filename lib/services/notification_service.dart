@@ -59,8 +59,16 @@ class NotificationService {
       ),
     );
 
-    await _ensureChannel();
-
+    // Deliberately *not* declaring the channel here. init() runs from
+    // main() before runApp, and EasyLocalization.ensureInitialized() only
+    // prepares storage — the translations themselves load inside the
+    // widget tree. A .tr() at this point returns the raw English key, so
+    // declaring the channel now names it in English on every device and
+    // logs two "key not found" warnings on every launch.
+    //
+    // The channel is not needed until something is scheduled or posted,
+    // and syncFromReminders declares it at that moment, by which time the
+    // locale is real. See _ensureChannel.
     _initialised = true;
   }
 

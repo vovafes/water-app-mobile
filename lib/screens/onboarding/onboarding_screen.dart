@@ -148,7 +148,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 label: Text(DateFormat('yyyy-MM-dd').format(_birthDate)),
               ),
 
-              _sectionLabel('${'Weight (kg)'.tr()}: ${_weight.round()} kg'),
+              _sectionLabel(
+                '${'Weight (kg)'.tr()}: ${_weight.round()} ${'kg'.tr()}',
+              ),
               Slider(
                 value: _weight,
                 min: 30,
@@ -157,7 +159,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onChanged: (v) => setState(() => _weight = v),
               ),
 
-              _sectionLabel('${'Height (cm)'.tr()}: ${_height.round()} cm'),
+              _sectionLabel(
+                '${'Height (cm)'.tr()}: ${_height.round()} ${'cm'.tr()}',
+              ),
               Slider(
                 value: _height,
                 min: 100,

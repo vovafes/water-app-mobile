@@ -377,7 +377,15 @@ class _ReminderEditScreenState extends State<ReminderEditScreen> {
         title: Text(isNew ? 'New reminder'.tr() : 'Edit reminder'.tr()),
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        // The bottom inset has to be added, not assumed: Save is the last
+        // item, and a flat 32 leaves it under the navigation bar — half the
+        // button's taps go to the system, not to us.
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          32 + MediaQuery.viewPaddingOf(context).bottom,
+        ),
         children: [
           TextField(
             controller: _title,

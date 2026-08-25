@@ -75,9 +75,10 @@ enum PremiumFeature {
     // run, and on the paywall that is a refund rather than a typo. Health
     // Connect — not Google Fit — is the current Android surface; the Fit
     // APIs were superseded by it.
-    PremiumFeature.healthSync => defaultTargetPlatform == TargetPlatform.iOS
-        ? 'Sync with Apple Health'.tr()
-        : 'Sync with Health Connect'.tr(),
+    PremiumFeature.healthSync =>
+      defaultTargetPlatform == TargetPlatform.iOS
+          ? 'Sync with Apple Health'.tr()
+          : 'Sync with Health Connect'.tr(),
   };
 
   String get body => switch (this) {

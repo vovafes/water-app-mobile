@@ -441,135 +441,145 @@ class _BadgeDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final unlocked = achievement.unlocked;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        16,
-        24,
-        24 + MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: cs.outline,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Container(
-            width: 96,
-            height: 96,
-            decoration: BoxDecoration(
-              gradient: unlocked
-                  ? const LinearGradient(
-                      colors: [Color(0xFFFFC56F), Color(0xFFFF9933)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : null,
-              color: unlocked ? null : cs.surfaceContainerHigh,
-              shape: BoxShape.circle,
-              boxShadow: unlocked
-                  ? [
-                      BoxShadow(
-                        color: BrandColors.amber500.withValues(alpha: 0.5),
-                        blurRadius: 24,
-                        offset: const Offset(0, 8),
-                      ),
-                    ]
-                  : null,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              achievement.icon ?? (unlocked ? '🏆' : '🔒'),
-              style: const TextStyle(fontSize: 48),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            context.tr(achievement.name),
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            context.tr(achievement.description),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: cs.onSurface.withValues(alpha: 0.75),
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (unlocked)
+    // SafeArea for the navigation bar, viewInsets for the keyboard — they
+    // are different insets and a sheet's last row needs both.
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          24,
+          16,
+          24,
+          24 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
-                color: BrandColors.emerald500.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: BrandColors.emerald500.withValues(alpha: 0.4),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.check_circle,
-                    size: 16,
-                    color: BrandColors.emerald500,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Unlocked'.tr(),
-                    style: const TextStyle(
-                      color: BrandColors.emerald500,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: cs.surfaceContainer,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: cs.outline),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.lock_outline, size: 16),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Keep going to unlock'.tr(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
+                color: cs.outline,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-          if (achievement.points > 0) ...[
+            const SizedBox(height: 24),
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                gradient: unlocked
+                    ? const LinearGradient(
+                        colors: [Color(0xFFFFC56F), Color(0xFFFF9933)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: unlocked ? null : cs.surfaceContainerHigh,
+                shape: BoxShape.circle,
+                boxShadow: unlocked
+                    ? [
+                        BoxShadow(
+                          color: BrandColors.amber500.withValues(alpha: 0.5),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
+                        ),
+                      ]
+                    : null,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                achievement.icon ?? (unlocked ? '🏆' : '🔒'),
+                style: const TextStyle(fontSize: 48),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              context.tr(achievement.name),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 8),
             Text(
-              '⭐ ${achievement.points} ${'points'.tr()}',
+              context.tr(achievement.description),
+              textAlign: TextAlign.center,
               style: TextStyle(
-                color: cs.onSurface.withValues(alpha: 0.7),
-                fontSize: 12,
+                fontSize: 14,
+                color: cs.onSurface.withValues(alpha: 0.75),
+                height: 1.4,
               ),
             ),
+            const SizedBox(height: 16),
+            if (unlocked)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: BrandColors.emerald500.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: BrandColors.emerald500.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.check_circle,
+                      size: 16,
+                      color: BrandColors.emerald500,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Unlocked'.tr(),
+                      style: const TextStyle(
+                        color: BrandColors.emerald500,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainer,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: cs.outline),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.lock_outline, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Keep going to unlock'.tr(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (achievement.points > 0) ...[
+              const SizedBox(height: 8),
+              Text(
+                '⭐ ${achievement.points} ${'points'.tr()}',
+                style: TextStyle(
+                  color: cs.onSurface.withValues(alpha: 0.7),
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
