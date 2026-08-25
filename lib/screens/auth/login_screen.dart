@@ -152,12 +152,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const RegisterScreen(),
-                        ),
-                      ),
+                      onPressed: () async {
+                        final auth = context.read<AuthProvider>();
+                        // The provider outlives both auth screens, so a
+                        // failed sign-in would otherwise greet the user on
+                        // the empty register form, and vice versa on the way
+                        // back.
+                        auth.clearError();
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RegisterScreen(),
+                          ),
+                        );
+                        auth.clearError();
+                      },
                       child: Text('Create one'.tr()),
                     ),
                   ],
