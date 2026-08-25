@@ -14,6 +14,41 @@ below marked *verified* was run on a device on the date given beside it, not
 read off the source — the two dates differ, and the gap is listed under
 [Not yet seen on a device](#not-yet-seen-on-a-device).
 
+## Build-time configuration
+
+Two `--dart-define` keys, both in `lib/services/api_service.dart`. Neither
+can be changed after the artifact is built, and neither fails loudly when
+wrong — a bad value looks like an app with no data, or a legal link that
+opens nothing.
+
+| Key | Default | What it is |
+|---|---|---|
+| `API_BASE_URL` | `http://10.0.2.2:8000` | Where the API lives. The default is the Android emulator's loopback and resolves to nothing anywhere else. |
+| `SITE_URL` | falls back to `API_BASE_URL` | The public web site, for `/privacy`, `/terms` and `/help`. |
+
+`SITE_URL` exists because those three pages are the ones a **store reviewer
+opens by hand**, from the paywall and from Profile → About. Left to follow
+`API_BASE_URL` they resolve to whatever host serves the API — a bare IP
+behind a "Not secure" warning, or in a debug build nothing at all. Set it
+to the public https domain on every release build even when the API is on
+the same host, so that moving the API later cannot quietly break the legal
+links.
+
+### `?lang=` is part of that contract
+
+`LegalUrls` (`lib/widgets/legal_footer.dart`) appends
+`?lang=<context.locale.languageCode>` to every one of those three URLs, and
+the backend's `SetLocale` gives that parameter priority over every other
+source. It is not decoration: `url_launcher` hands the link to the phone's
+*external browser*, which sends its own `Accept-Language` — so a phone
+running the app in Russian on an English-locale system used to open English
+Terms. Changing either half alone re-breaks it silently, because the wrong
+page still returns 200.
+
+The legal *bodies* are still English in all four locales; `?lang=` only
+moves the chrome, the titles and the language switcher. That decision sits
+in the backend list.
+
 ## Build types are not interchangeable
 
 | | debug | profile | release |
@@ -84,7 +119,7 @@ already seen. The `+N` suffix is the versionCode.
 
 ## Play submission checklist
 
-- [ ] **AAB, not APK.** `flutter build appbundle --release --dart-define=API_BASE_URL=https://<host>`.
+- [ ] **AAB, not APK.** `flutter build appbundle --release --dart-define=API_BASE_URL=https://<host> --dart-define=SITE_URL=https://<host>`.
       Play requires a bundle and splits the ABIs itself, so `--target-platform`
       is unnecessary there.
 - [ ] **Privacy policy URL.** The page itself exists and is written
@@ -200,7 +235,9 @@ Then build the release artifact and actually launch it. R8 only runs in
 release, so reflection-based failures appear nowhere else:
 
 ```bash
-flutter build apk --release --dart-define=API_BASE_URL=https://<host>
+flutter build apk --release \
+  --dart-define=API_BASE_URL=https://<host> \
+  --dart-define=SITE_URL=https://<host>
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 adb logcat -c && adb shell am start -n com.vovafes.water_app_mobile/.MainActivity
 adb logcat -d -b crash -t 100
@@ -241,15 +278,28 @@ transport failure threw straight out of `AuthProvider.login()`, skipping
 That path is Android-identical to iOS but had only ever been checked on
 iOS.
 
-**Not yet seen on a device.** Three things landed after that run and have
-only ever been exercised in the test suite.
+A second pass on 2026-08-25 walked the whole app by hand on the same
+emulator against a live backend, in Russian, tapping every control that
+does something. `flutter analyze` clean, `flutter test` 63 passed. What it
+found is fixed and re-verified on device: legal links dropped the app's
+language, `(and 1 more error)` appeared in English inside Russian
+validation messages, a failed sign-in left its error sitting on the empty
+Register form, new accounts were created with `locale = 'en'` regardless of
+what the user was reading, and the onboarding sliders labelled themselves
+in hardcoded `kg`/`cm`. Everything else behaved: reminders CRUD end to end
+including the delete confirmation and its Cancel, the achievements grid and
+locked-achievement sheet, log out, the paywall with its disclosures, and
+the calendar's now-localized month and weekday headers.
 
-*The paywall's legal block* — renewal terms plus the Terms and Privacy
-links. A widget test lays the screen out at 360×640 and fails on a
-`RenderFlex` overflow, so it fits; but the links have never been *tapped*
-on hardware, and they cannot be until the backend is on a reachable host.
-Add both taps to the next on-device pass: a reviewer follows them by hand,
-and a dead legal link on a paid screen is a rejection.
+Still worth a look next time: the Terms and Privacy links *inside the
+paywall* were not among the ones tapped — the same URLs from Profile →
+About were, and they share `LegalUrls`, but a reviewer follows the paywall
+pair by hand and a dead legal link on a paid screen is a rejection. Also,
+the theme segmented control publishes no semantics for its three icon-only
+segments, so a screen reader announces nothing useful there.
+
+**Not yet seen on a device.** Two things have only ever been exercised in
+the test suite.
 
 *The optimistic drink write.* The totals now move in the same frame as the
 tap and the request settles behind the user. The happy path is the easy
@@ -429,7 +479,9 @@ deletable in-app.
       is still Universal, so decide which.
 - [ ] **Archive and upload:**
       ```bash
-      flutter build ipa --release --dart-define=API_BASE_URL=https://<host>
+      flutter build ipa --release \
+        --dart-define=API_BASE_URL=https://<host> \
+        --dart-define=SITE_URL=https://<host>
       ```
       then upload `build/ios/ipa/*.ipa` with Transporter, or
       `xcrun altool`/`xcrun notarytool` from CI.
