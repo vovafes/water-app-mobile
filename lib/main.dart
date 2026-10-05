@@ -8,6 +8,8 @@ import 'providers/reminder_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/api_service.dart';
 import 'services/notification_service.dart';
+import 'services/purchase_service.dart';
+import 'services/store_purchase_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/achievements/achievements_screen.dart';
@@ -63,15 +65,34 @@ class WaterApp extends StatefulWidget {
 }
 
 class _WaterAppState extends State<WaterApp> {
+  /// One for the whole app, started at launch: a purchase interrupted last
+  /// session is redelivered on the store's stream, and has to be heard even
+  /// if the paywall is not open.
+  late final PurchaseService _purchases;
+
   @override
   void initState() {
     super.initState();
+    _purchases = StorePurchaseService.supported
+        ? (StorePurchaseService(
+            onEntitlementMayHaveChanged: () {
+              if (mounted) context.read<AuthProvider>().refreshUser();
+            },
+          )..start())
+        : const UnconfiguredPurchaseService();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
       // Cache first, network second. A cold start with no signal must not
       // show a paying user the free tier while /auth/me is in flight.
       auth.loadCachedEntitlement().then((_) => auth.loadUser());
     });
+  }
+
+  @override
+  void dispose() {
+    final p = _purchases;
+    if (p is StorePurchaseService) p.dispose();
+    super.dispose();
   }
 
   @override
@@ -97,16 +118,19 @@ class _WaterAppState extends State<WaterApp> {
       }
     }
 
-    return MaterialApp(
-      title: 'Water App',
-      debugShowCheckedModeBanner: false,
-      theme: buildLightTheme(),
-      darkTheme: buildDarkTheme(),
-      themeMode: theme.mode,
-      localizationsDelegates: context.localizationDelegates,
-      supportedLocales: context.supportedLocales,
-      locale: context.locale,
-      home: const _AppRoot(),
+    return Provider<PurchaseService>.value(
+      value: _purchases,
+      child: MaterialApp(
+        title: 'Water App',
+        debugShowCheckedModeBanner: false,
+        theme: buildLightTheme(),
+        darkTheme: buildDarkTheme(),
+        themeMode: theme.mode,
+        localizationsDelegates: context.localizationDelegates,
+        supportedLocales: context.supportedLocales,
+        locale: context.locale,
+        home: const _AppRoot(),
+      ),
     );
   }
 }

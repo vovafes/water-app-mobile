@@ -18,10 +18,9 @@ class LegalUrls {
   /// These open in an external browser, which sends its own
   /// `Accept-Language` — so without `lang` a reader using the app in Russian
   /// gets English Terms. The backend's SetLocale middleware reads it.
-  static Uri page(String path, String languageCode) =>
-      Uri.parse(
-        '${ApiService.siteUrl}$path',
-      ).replace(queryParameters: {'lang': languageCode});
+  static Uri page(String path, String languageCode) => Uri.parse(
+    '${ApiService.siteUrl}$path',
+  ).replace(queryParameters: {'lang': languageCode});
 
   static Uri privacy(String languageCode) => page('/privacy', languageCode);
   static Uri terms(String languageCode) => page('/terms', languageCode);

@@ -30,7 +30,11 @@ class FreeLimits {
   /// Everything else — juice, alcohol, custom drinks — is Premium. Note
   /// this gates the *catalogue*, never the hydration multiplier itself:
   /// a free user's coffee still counts at its real coefficient.
-  static const drinkSlugs = {'water', 'tea', 'coffee'};
+  ///
+  /// These are **category** slugs (`Drink.categorySlug`), the same ones the
+  /// backend enforces in `config/billing.php`. Individual drink slugs are
+  /// 'still-water', 'espresso', 'green-tea', ... and never equal these.
+  static const drinkCategories = {'water', 'tea', 'coffee'};
 
   /// Badges past this stay visible but locked. The locked ones are the
   /// advertisement.
@@ -136,13 +140,14 @@ class PremiumGate {
 
   int? get reminderLimit => isPremium ? null : FreeLimits.reminders;
 
-  bool allowsDrink(String? slug) {
+  /// [categorySlug] is `Drink.categorySlug`.
+  bool allowsDrink(String? categorySlug) {
     if (isPremium) return true;
-    // An unknown slug is treated as free rather than locked. The backend
-    // does not send `drink_slug` on log listings yet (see TODO.md), so
-    // failing closed here would lock drinks the user can already log.
-    if (slug == null) return true;
-    return FreeLimits.drinkSlugs.contains(slug);
+    // An unknown category is treated as free rather than locked: failing
+    // closed would lock drinks the user can already log. The server is the
+    // real gate and answers 403 `premium_required` if it disagrees.
+    if (categorySlug == null) return true;
+    return FreeLimits.drinkCategories.contains(categorySlug);
   }
 
   bool allowsAchievementAt(int index) =>

@@ -52,6 +52,9 @@ dependencies:
   # screen. Both stores require the paywall to link out to Terms and
   # Privacy, and neither lets an app cancel a subscription itself.
   url_launcher: ^6.3.1
+  in_app_purchase: ^3.3.1
+  in_app_purchase_android: ^0.5.3
+  in_app_purchase_storekit: ^0.4.13
 
 dev_dependencies:
   flutter_test:

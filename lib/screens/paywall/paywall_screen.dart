@@ -52,14 +52,16 @@ class PaywallScreen extends StatefulWidget {
   /// `reminders`, `history`, `profile`.
   final String source;
 
-  final PurchaseService purchases;
+  /// Null in the app: the root provides the one shared service. Tests pass
+  /// a fake.
+  final PurchaseService? purchases;
 
   const PaywallScreen({
     super.key,
     this.targetMl,
     this.angle = PaywallAngle.physiology,
     required this.source,
-    this.purchases = const UnconfiguredPurchaseService(),
+    this.purchases,
   });
 
   @override
@@ -78,8 +80,20 @@ class _PaywallScreenState extends State<PaywallScreen> {
     _load();
   }
 
+  /// The explicit one, else the app-wide one, else a store-less stub (a
+  /// tree without the provider, e.g. a bare widget test).
+  late final PurchaseService _purchases = widget.purchases ?? _fromTree();
+
+  PurchaseService _fromTree() {
+    try {
+      return context.read<PurchaseService>();
+    } on ProviderNotFoundException {
+      return const UnconfiguredPurchaseService();
+    }
+  }
+
   Future<void> _load() async {
-    final plans = await widget.purchases.plans();
+    final plans = await _purchases.plans();
     if (!mounted) return;
     setState(() {
       _plans = plans;
@@ -99,7 +113,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     final plan = _selected;
     if (plan == null) return;
     setState(() => _busy = true);
-    final result = await widget.purchases.purchase(plan.productId);
+    final result = await _purchases.purchase(plan.productId);
     if (!mounted) return;
     setState(() => _busy = false);
 
@@ -122,7 +136,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
   Future<void> _restore() async {
     setState(() => _busy = true);
-    final restored = await widget.purchases.restore();
+    final restored = await _purchases.restore();
     if (!mounted) return;
     if (restored) await context.read<AuthProvider>().refreshUser();
     if (!mounted) return;

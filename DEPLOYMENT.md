@@ -340,16 +340,26 @@ the build, not a bug. Emulator smoke tests need a universal build or
    choice outranks the account's — a product decision, not a manifest line.
    Note this does not affect the store listing: Play reads the available
    languages from the bundle's resources either way.
-2. **Billing is a stub.** `UnconfiguredPurchaseService` returns
-   `PurchaseResult.unavailable` for every product, so the paywall renders
-   with the planned tiers but cannot transact. Swapping in a real
-   `PurchaseService` is one class (see the subscription-products item
-   above), but it cannot happen before a build is on a Play track.
-3. **Premium is a fence, not a wall.** `FreeLimits` is enforced in the
-   client only; the backend has no `subscriptions` table yet, so the API
-   still answers requests a free tier should not be making. Accepted for
-   the first release, and written down in `premium_gate.dart` so it is not
-   mistaken for enforcement.
+2. **Billing is built but has never touched a real store.**
+   `StorePurchaseService` (`lib/services/store_purchase_service.dart`, over
+   `in_app_purchase`) is wired at app start. Each purchase is posted to the
+   backend's `/subscriptions/verify`, which asks Apple/Google itself; the app
+   then re-reads `/auth/me`. Until all three products exist in the console,
+   `plans()` falls back to the planned tiers and `purchase()` answers
+   `unavailable`, so a build can ship before store setup without crashing or
+   inventing prices. Covered by fake-store tests only. Expect the merged
+   manifest to gain `com.android.vending.BILLING` — not yet confirmed by a
+   built APK (no Android SDK on the machine this was written on); add it to
+   the permissions table above after the first `aapt dump`.
+   The free-trial line on the paywall is read from the store product, so it
+   only appears once an introductory offer is configured. On iOS a returning
+   user who already spent their trial still sees it (StoreKit 1 does not
+   report eligibility).
+3. **Premium is enforced on the server for the write paths.** The backend
+   now answers 403 `{code: "premium_required", feature}` for a second
+   reminder, custom drinks and non-water/tea/coffee drink logs. The app does
+   not yet turn that 403 into a paywall (it shows a generic error), and the
+   history window is still only a client-side blur.
 
 ## Still to do
 

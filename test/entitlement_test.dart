@@ -102,16 +102,18 @@ void main() {
       expect(paid.allowsAchievementAt(999), isTrue);
     });
 
-    test('the free drink set is water, tea and coffee', () {
+    test('the free drink set is the water, tea and coffee categories', () {
       expect(free.allowsDrink('water'), isTrue);
+      expect(free.allowsDrink('tea'), isTrue);
       expect(free.allowsDrink('coffee'), isTrue);
-      expect(free.allowsDrink('beer'), isFalse);
-      expect(paid.allowsDrink('beer'), isTrue);
+      expect(free.allowsDrink('alcohol'), isFalse);
+      expect(free.allowsDrink('juice'), isFalse);
+      expect(paid.allowsDrink('alcohol'), isTrue);
     });
 
-    test('a drink with no slug is allowed rather than locked', () {
-      // The backend omits `drink_slug` on log listings (TODO.md), so
-      // failing closed would lock drinks the user can already log.
+    test('a drink with no category is allowed rather than locked', () {
+      // Log listings carry no category, so failing closed would lock
+      // drinks the user can already log.
       expect(free.allowsDrink(null), isTrue);
     });
   });
