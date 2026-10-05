@@ -9,11 +9,6 @@ Release-blocking work is tracked separately in
 
 ## Mobile
 
-### iOS: launch screen is still the blank placeholder
-`ios/Runner/Assets.xcassets/LaunchImage.imageset` holds the three 68-byte
-placeholder PNGs from `flutter create`, so the app flashes white before the
-first Flutter frame. Android has a themed launch; iOS does not.
-
 ### iOS: foreground notification banners untested
 Scheduled reminders fire from the OS regardless, but showing a banner while
 the app is *in the foreground* depends on `UNUserNotificationCenter`'s
@@ -109,6 +104,19 @@ add the slug alongside `drink_name`/`drink_color`.
 
 ## Done
 
+- [x] iOS launch screen replaced — `LaunchImage.imageset` now holds the real
+      droplet mark (cropped from `assets/icon/icon_foreground.png`, 1x/2x/3x)
+      instead of `flutter create`'s 68-byte placeholders, and
+      `LaunchScreen.storyboard`'s background uses a new `LaunchBackground`
+      color set (sky500 light / sky900 dark) instead of hardcoded white —
+      Android's launch already followed the system background via
+      `?android:colorBackground` in `drawable-v21`; iOS now does too, plus
+      the brand mark Android's splash never had either. Not verified on a
+      device or simulator (no Mac in this environment) — check on the next
+      iOS build.
+- [x] App name settled as "Water App" — already what `strings.xml` and
+      `Info.plist` ship; `README.md`'s stray "HydroTrack" mention fixed to
+      match. `applicationId`/bundle ID confirmed as-is, not changed.
 - [x] Mobile aligned to backend API field names (volume_ml, hydration_ml, ...)
 - [x] Onboarding flow before dashboard
 - [x] Backend Tips controller fixed (forLocale scope removed)

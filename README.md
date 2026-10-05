@@ -2,7 +2,7 @@
 
 Android and iOS client for the
 [water-app](https://github.com/vovafes/water-app) Laravel backend.
-HydroTrack — daily hydration tracking with onboarding, drink logging,
+Water App — daily hydration tracking with onboarding, drink logging,
 history, achievements, and per-locale tips.
 
 iOS builds and runs (verified on Xcode 26.5 / Flutter 3.44.1); what it

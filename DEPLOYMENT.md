@@ -89,16 +89,19 @@ $env:LOCALAPPDATA\Android\Sdk\build-tools\<v>\apksigner.bat verify --print-certs
 
 ### `applicationId`
 
-Currently `com.vovafes.water_app_mobile`. Permanent from the moment the
-first artifact reaches Play. Changing it later is not a rename; it is a new
-listing with no reviews, no ratings and no install base. The `_mobile`
-suffix is a repo-name artifact rather than a product decision, so it is
-worth one deliberate look now.
+**Confirmed, keeping as-is:** `com.vovafes.water_app_mobile` (Android),
+`com.vovafes.waterAppMobile` (iOS). Permanent from the moment the first
+artifact reaches Play/App Store Connect — changing it later is not a
+rename, it is a new listing with no reviews, no ratings and no install
+base. The `_mobile`/`Mobile` suffix is a repo-name artifact rather than a
+product decision, but it's been looked at deliberately and kept.
 
 ### App name
 
-`res/values/strings.xml` holds `app_name` = "Water App". Deliberately not
-localized into `values-de/-ru/-uk`:
+**Confirmed: "Water App".** `res/values/strings.xml` and `Info.plist`
+already hold `app_name`/`CFBundleDisplayName` = "Water App"; no code change
+needed. `README.md`'s stray "HydroTrack" mention has been corrected to
+match. Deliberately not localized into `values-de/-ru/-uk`:
 
 - "Water App" is the brand, and it renders untranslated everywhere else in
   the app (the login header, `MaterialApp.title`).
@@ -106,9 +109,6 @@ localized into `values-de/-ru/-uk`:
   in-app one from `easy_localization`. A translated launcher label would
   disagree with the UI the moment a user runs the app in a language other
   than their phone's.
-
-Note that `README.md` calls the product "HydroTrack" while the app calls
-itself "Water App". Pick one.
 
 ### Version
 
@@ -370,8 +370,9 @@ Ordered by what blocks what.
    is a hard Play blocker. One item, two gates.
 2. **Real mail transport on the backend** — `forgot-password` is wired up in
    the app and currently does nothing in production.
-3. **Confirm `applicationId` and the app name** — both are effectively
-   irreversible after the first publish.
+3. ~~Confirm `applicationId` and the app name~~ — both confirmed, see
+   [One-way decisions](#one-way-decisions--settle-these-before-the-first-upload)
+   above.
 4. **KGP deprecation** — `shared_preferences_android` and `flutter_timezone`
    still apply the Kotlin Gradle Plugin instead of Flutter's built-in
    Kotlin. Non-fatal today; a future Flutter release will refuse to build.
@@ -498,10 +499,17 @@ deletable in-app.
 
 ## Known iOS-side gaps
 
-1. **Launch screen is blank white.** `Assets.xcassets/LaunchImage.imageset`
-   still holds the three 68-byte placeholder PNGs from `flutter create`, so
-   a dark-mode phone flashes white before the first Flutter frame. Not a
-   rejection risk, but Android has a themed launch and iOS does not.
+1. ~~Launch screen is blank white.~~ Fixed: `LaunchImage.imageset` now holds
+   the real droplet mark (1x/2x/3x, cropped from
+   `assets/icon/icon_foreground.png`) and `LaunchScreen.storyboard`'s
+   background references a new `LaunchBackground` color set (sky500 light /
+   sky900 dark) instead of a hardcoded white `<color>`. Built with `sharp`
+   from the existing icon assets, not hand-drawn — regenerate from
+   `icon_foreground.png` if the mark ever changes. **Not verified on a
+   device or simulator** — no Mac was available when this was made; confirm
+   on the next iOS build that the color set resolves (it's a standard
+   `Assets.xcassets` folder reference so no `.pbxproj` change was needed)
+   and that light/dark both look right.
 2. **App icon has the corner radius baked in.** `make-icon.ps1` draws a
    rounded square at r=200 and `remove_alpha_ios: true` flattens the
    corners to white. The iOS mask is a slightly *larger* radius, so it

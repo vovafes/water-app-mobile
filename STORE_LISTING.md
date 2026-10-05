@@ -6,12 +6,12 @@ console — the fields have hard character limits, the console truncates
 silently in some of them, and a listing edit after publishing goes through
 review again.
 
-**The product name is still undecided.** `README.md` says "HydroTrack",
-`strings.xml` and `Info.plist` say "Water App". Everything below uses
-**Water App**, which is what a user actually sees on their home screen. If
-you settle on the other one, it changes here, in both platform manifests,
-and in the listing — and after first publish the store name is editable but
-the `applicationId` is not. Settle it first.
+**The product name is Water App**, settled. `strings.xml` and `Info.plist`
+already say "Water App"; `README.md`'s stray "HydroTrack" mention has been
+corrected to match. Everything below uses **Water App**, which is what a
+user actually sees on their home screen. `applicationId`/bundle ID
+(`com.vovafes.water_app_mobile` / `com.vovafes.waterAppMobile`) stay as-is —
+confirmed, and irreversible after first publish.
 
 Nothing here promises a feature that does not exist. Health sync, widgets
 and watch apps are real plans (MONETIZATION.md §3) and must stay out of the
