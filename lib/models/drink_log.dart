@@ -2,6 +2,7 @@ class DrinkLog {
   final int id;
   final int? drinkId;
   final String drinkName;
+  final String? drinkSlug;
   final String? drinkColor;
   final String? drinkIconPath;
   final double volumeMl;
@@ -12,6 +13,7 @@ class DrinkLog {
     required this.id,
     this.drinkId,
     required this.drinkName,
+    this.drinkSlug,
     this.drinkColor,
     this.drinkIconPath,
     required this.volumeMl,
@@ -25,9 +27,9 @@ class DrinkLog {
   DateTime get loggedAt => consumedAt;
 
   /// The dashboard's "recent_logs" returns a flat shape:
-  ///   { id, drink_id, drink_name, drink_color, volume_ml, hydration_ml, consumed_at }
+  ///   { id, drink_id, drink_name, drink_slug, drink_color, volume_ml, hydration_ml, consumed_at }
   /// The drink-logs index returns a nested shape:
-  ///   { id, drink_id, volume_ml, hydration_ml, consumed_at, drink: { name, color, icon_path } }
+  ///   { id, drink_id, volume_ml, hydration_ml, consumed_at, drink: { name, slug, color, icon_path } }
   /// Both are handled here. Numeric fields are tolerated as both number
   /// and string because Eloquent decimal columns serialise as strings.
   factory DrinkLog.fromJson(Map<String, dynamic> json) {
@@ -43,6 +45,7 @@ class DrinkLog {
 
     final name =
         json['drink_name']?.toString() ?? readNested('name') ?? 'Drink';
+    final slug = json['drink_slug']?.toString() ?? readNested('slug');
     final color = json['drink_color']?.toString() ?? readNested('color');
     final iconPath =
         json['drink_icon_path']?.toString() ?? readNested('icon_path');
@@ -66,6 +69,7 @@ class DrinkLog {
       id: _readInt(json['id']) ?? 0,
       drinkId: drinkId,
       drinkName: name,
+      drinkSlug: slug,
       drinkColor: color,
       drinkIconPath: iconPath,
       volumeMl: volume,

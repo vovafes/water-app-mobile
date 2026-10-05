@@ -206,6 +206,7 @@ class DashboardProvider extends ChangeNotifier {
         id: -1,
         drinkId: drinkId,
         drinkName: drink?.name ?? 'Drink',
+        drinkSlug: drink?.slug,
         drinkColor: drink?.color,
         drinkIconPath: drink?.iconPath,
         volumeMl: volumeMl,

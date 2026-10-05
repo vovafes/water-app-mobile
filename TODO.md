@@ -9,15 +9,6 @@ Release-blocking work is tracked separately in
 
 ## Mobile
 
-### History drink icons are guessed from the name
-`drink-logs`/dashboard API responses don't include the drink's `slug`,
-only `drink_name`/`drink_color`/`icon_path`. `history_screen.dart`'s
-`_guessSlug()` pattern-matches on `drink_name` text to pick a `DrinkIcon`
-— works for the seeded drinks but breaks for custom or localized names.
-Real fix: have the backend include `drink_slug` in those responses
-(`DashboardSummaryService`/`DrinkLogController@index`) and read it
-directly instead of guessing.
-
 ### iOS: launch screen is still the blank placeholder
 `ios/Runner/Assets.xcassets/LaunchImage.imageset` holds the three 68-byte
 placeholder PNGs from `flutter create`, so the app flashes white before the

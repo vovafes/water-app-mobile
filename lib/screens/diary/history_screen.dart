@@ -358,7 +358,7 @@ class _DayBlock extends StatelessWidget {
                         ),
                         alignment: Alignment.center,
                         child: DrinkIcon(
-                          slug: _guessSlug(log.drinkName),
+                          slug: log.drinkSlug ?? _guessSlug(log.drinkName),
                           color: tone.text,
                           size: 20,
                         ),

@@ -703,7 +703,11 @@ class _RecentLogsCard extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                         alignment: Alignment.center,
-                        child: _logIcon(log.drinkName, tone.text),
+                        child: _logIcon(
+                          log.drinkName,
+                          tone.text,
+                          log.drinkSlug,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -760,12 +764,11 @@ class _RecentLogsCard extends StatelessWidget {
     );
   }
 
-  /// We don't have the drink slug on the log payload, so the recent
-  /// logs list falls back to a guessed slug based on the localised
-  /// name. If the user's locale isn't English the SVG will show the
-  /// generic glass — acceptable for a fallback.
-  Widget _logIcon(String drinkName, Color color) {
-    final slug = _guessSlug(drinkName);
+  /// The log payload carries `drink_slug`; the guess from the localised
+  /// name is only the fallback for an older backend. If the user's locale
+  /// isn't English the guess shows the generic glass.
+  Widget _logIcon(String drinkName, Color color, [String? knownSlug]) {
+    final slug = knownSlug ?? _guessSlug(drinkName);
     return DrinkIcon(slug: slug, color: color, size: 22);
   }
 
