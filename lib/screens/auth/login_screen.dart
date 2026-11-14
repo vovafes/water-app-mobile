@@ -35,26 +35,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Center undoes the Column's stretch, which would otherwise
                 // override the square's own width.
                 Center(
-                  child: Container(
+                  child: Image.asset(
+                    'assets/icon/icon.png',
                     width: 72,
                     height: 72,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [BrandColors.sky400, BrandColors.cyan500],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: BrandColors.sky500.withValues(alpha: 0.4),
-                          blurRadius: 18,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text('💧', style: TextStyle(fontSize: 36)),
                   ),
                 ),
                 const SizedBox(height: 16),

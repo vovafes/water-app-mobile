@@ -32,19 +32,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               // Center undoes the Column's stretch, which would otherwise
               // override the square's own width.
               Center(
-                child: Container(
+                child: Image.asset(
+                  'assets/icon/icon.png',
                   width: 60,
                   height: 60,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [BrandColors.sky400, BrandColors.cyan500],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  alignment: Alignment.center,
-                  child: const Text('💧', style: TextStyle(fontSize: 30)),
                 ),
               ),
               const SizedBox(height: 24),

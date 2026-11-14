@@ -423,10 +423,9 @@ class _TrialTimeline extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    cells[i].$1.toUpperCase(),
+                    cells[i].$1,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
-                      letterSpacing: 0.6,
                     ),
                     textAlign: TextAlign.center,
                   ),

@@ -187,13 +187,6 @@ class _HeroStats extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: BrandColors.sky500.withValues(alpha: 0.25),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
       child: Row(
         children: [
@@ -323,27 +316,11 @@ class _BadgeTile extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          gradient: unlocked
-              ? const LinearGradient(
-                  colors: [Color(0xFFFF9933), Color(0xFFFF6B6B)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: unlocked ? null : cs.surfaceContainer,
+          color: unlocked ? BrandColors.amber500 : cs.surfaceContainer,
           border: Border.all(
             color: unlocked ? Colors.transparent : cs.outline,
             width: 1,
           ),
-          boxShadow: unlocked
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFFFF9933).withValues(alpha: 0.4),
-                    blurRadius: 14,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-              : null,
         ),
         padding: const EdgeInsets.all(10),
         child: Column(
@@ -467,24 +444,8 @@ class _BadgeDetail extends StatelessWidget {
               width: 96,
               height: 96,
               decoration: BoxDecoration(
-                gradient: unlocked
-                    ? const LinearGradient(
-                        colors: [Color(0xFFFFC56F), Color(0xFFFF9933)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                color: unlocked ? null : cs.surfaceContainerHigh,
+                color: unlocked ? BrandColors.amber500 : cs.surfaceContainerHigh,
                 shape: BoxShape.circle,
-                boxShadow: unlocked
-                    ? [
-                        BoxShadow(
-                          color: BrandColors.amber500.withValues(alpha: 0.5),
-                          blurRadius: 24,
-                          offset: const Offset(0, 8),
-                        ),
-                      ]
-                    : null,
               ),
               alignment: Alignment.center,
               child: Text(

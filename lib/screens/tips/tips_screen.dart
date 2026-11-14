@@ -234,7 +234,7 @@ class _CoverPlaceholder extends StatelessWidget {
         ),
       ),
       alignment: Alignment.center,
-      child: const Text('💧', style: TextStyle(fontSize: 64)),
+      child: Image.asset('assets/icon/icon_foreground.png', width: 72, height: 72),
     );
   }
 }
