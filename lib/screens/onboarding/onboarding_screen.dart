@@ -173,13 +173,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               _sectionLabel('Activity level'.tr()),
               SegmentedButton<String>(
                 segments: [
-                  ButtonSegment(value: 'low', label: Text('Low'.tr())),
+                  ButtonSegment(value: 'light', label: Text('Light'.tr())),
                   ButtonSegment(
                     value: 'moderate',
                     label: Text('Moderate'.tr()),
                   ),
-                  ButtonSegment(value: 'high', label: Text('High'.tr())),
-                  ButtonSegment(value: 'athlete', label: Text('Athlete'.tr())),
+                  ButtonSegment(value: 'active', label: Text('Active'.tr())),
+                  ButtonSegment(value: 'intense', label: Text('Intense'.tr())),
                 ],
                 showSelectedIcon: false,
                 selected: {_activity},
@@ -194,11 +194,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     value: 'temperate',
                     label: Text('Temperate'.tr()),
                   ),
+                  ButtonSegment(value: 'warm', label: Text('Warm'.tr())),
                   ButtonSegment(value: 'hot', label: Text('Hot'.tr())),
-                  ButtonSegment(
-                    value: 'tropical',
-                    label: Text('Tropical'.tr()),
-                  ),
                 ],
                 showSelectedIcon: false,
                 selected: {_climate},
@@ -217,16 +214,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               _sectionLabel('Goal'.tr()),
               SegmentedButton<String>(
                 segments: [
-                  ButtonSegment(value: 'norm', label: Text('Norm'.tr())),
                   ButtonSegment(
-                    value: 'wellbeing',
-                    label: Text('Wellbeing'.tr()),
-                  ),
-                  ButtonSegment(value: 'routine', label: Text('Routine'.tr())),
-                  ButtonSegment(
-                    value: 'weight',
+                    value: 'minus',
                     label: Text('Lose weight'.tr()),
                   ),
+                  ButtonSegment(value: 'norm', label: Text('Stay fit'.tr())),
+                  ButtonSegment(value: 'plus', label: Text('Gain muscle'.tr())),
                 ],
                 showSelectedIcon: false,
                 selected: {_goal},

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -19,6 +20,7 @@ import 'screens/paywall/paywall_screen.dart';
 import 'screens/tips/tips_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'theme.dart';
+import 'widgets/session_splash.dart';
 
 /// All four locales the web app supports. The English text doubles as
 /// the translation key (mirroring the Laravel `__('...')` pattern), so
@@ -84,7 +86,7 @@ class _WaterAppState extends State<WaterApp> {
       final auth = context.read<AuthProvider>();
       // Cache first, network second. A cold start with no signal must not
       // show a paying user the free tier while /auth/me is in flight.
-      auth.loadCachedEntitlement().then((_) => auth.loadUser());
+      auth.restoreSession();
     });
   }
 
@@ -129,6 +131,29 @@ class _WaterAppState extends State<WaterApp> {
         localizationsDelegates: context.localizationDelegates,
         supportedLocales: context.supportedLocales,
         locale: context.locale,
+        // The system navigation bar kept its light default under the dark
+        // theme, a pale strip under a dark app. Colour it, and its icons,
+        // from the active theme.
+        builder: (context, child) {
+          final scheme = Theme.of(context).colorScheme;
+          final dark = Theme.of(context).brightness == Brightness.dark;
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: dark
+                  ? Brightness.light
+                  : Brightness.dark,
+              statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+              systemNavigationBarColor: scheme.surface,
+              systemNavigationBarIconBrightness: dark
+                  ? Brightness.light
+                  : Brightness.dark,
+              systemNavigationBarDividerColor: Colors.transparent,
+              systemNavigationBarContrastEnforced: false,
+            ),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
         home: const _AppRoot(),
       ),
     );
@@ -179,6 +204,15 @@ class _AppRootState extends State<_AppRoot> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+
+    // A saved session is being checked, or could not be: neither is a reason
+    // to show the sign-in form to someone who is already signed in.
+    if (!auth.isLoggedIn && (auth.restoring || auth.restoreFailed)) {
+      return SessionSplash(
+        failed: auth.restoreFailed && !auth.restoring,
+        onRetry: auth.restoreSession,
+      );
+    }
 
     if (!auth.isLoggedIn) {
       // Drop back to the dashboard while logged out, so the next account to

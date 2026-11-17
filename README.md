@@ -8,6 +8,9 @@ history, achievements, and per-locale tips.
 iOS builds and runs (verified on Xcode 26.5 / Flutter 3.44.1); what it
 still needs is an Apple Developer account — see [iOS](#ios) at the bottom.
 
+Want to see it first? [`PREVIEW.md`](PREVIEW.md) has screenshots of every
+screen, light and dark.
+
 Going to production? [`DEPLOYMENT.md`](DEPLOYMENT.md) has the release
 checklist, the decisions that become irreversible at first publish, and
 the list of what is still outstanding.

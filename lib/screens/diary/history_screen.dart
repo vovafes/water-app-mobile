@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../../providers/dashboard_provider.dart';
 import '../../services/api_service.dart';
 import '../../models/drink_log.dart';
 import '../../theme.dart';
@@ -68,10 +72,68 @@ class HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
+  /// Asks first, then removes the entry on the server and drops it from the
+  /// list. Resolves true only when it is really gone, which is what lets the
+  /// swipe animation finish; on failure the row springs back and says why.
+  ///
+  /// There was no way to undo a mistaken entry on the phone at all (a 3000 ml
+  /// typo stayed in the day's total for good), although the API has had a
+  /// DELETE route from the start.
+  Future<bool> _deleteLog(DrinkLog log) async {
+    final dash = context.read<DashboardProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final errorColor = Theme.of(context).colorScheme.error;
+    final failure = 'Could not delete the entry'.tr();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete this entry?'.tr()),
+        content: Text(
+          'This removes it from your history and your daily total.'.tr(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel'.tr()),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            child: Text('Delete'.tr()),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return false;
+
+    final res = await ApiService.delete('/drink-logs/${log.id}');
+    if (res['success'] != true) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(failure), backgroundColor: errorColor),
+      );
+      return false;
+    }
+    HapticFeedback.lightImpact();
+    // Today's ring and totals live in another provider; without this the
+    // dashboard kept showing the deleted drink until the next refresh.
+    dash.loadDashboard(silent: true);
+    return true;
+  }
+
+  /// Drops a deleted entry from the list. Called once the swipe has finished
+  /// (a Dismissible has to leave the tree from its own onDismissed).
+  void _removeLog(DrinkLog log) {
+    if (!mounted) return;
+    setState(() => _logs = _logs.where((l) => l.id != log.id).toList());
+  }
+
   Map<String, List<DrinkLog>> _grouped(String localeCode) {
     final map = <String, List<DrinkLog>>{};
     for (final log in _logs) {
-      final key = DateFormat('EEEE, MMM d', localeCode).format(log.consumedAt);
+      final key = DateFormat.MMMMEEEEd(localeCode).format(log.consumedAt);
       map.putIfAbsent(key, () => []).add(log);
     }
     return map;
@@ -115,7 +177,7 @@ class HistoryScreenState extends State<HistoryScreen> {
 
   String _rangeLabel(String localeCode) {
     if (_from == null || _to == null) return 'All time'.tr();
-    final fmt = DateFormat('MMM d', localeCode);
+    final fmt = DateFormat.MMMd(localeCode);
     if (_from!.year == _to!.year &&
         _from!.month == _to!.month &&
         _from!.day == _to!.day) {
@@ -189,6 +251,8 @@ class HistoryScreenState extends State<HistoryScreen> {
                           label: entry.key,
                           total: total.toInt(),
                           logs: entry.value,
+                          onDelete: _deleteLog,
+                          onDeleted: _removeLog,
                         );
                       }).toList(),
                     ),
@@ -282,10 +346,14 @@ class _DayBlock extends StatelessWidget {
   final String label;
   final int total;
   final List<DrinkLog> logs;
+  final Future<bool> Function(DrinkLog log) onDelete;
+  final void Function(DrinkLog log) onDeleted;
   const _DayBlock({
     required this.label,
     required this.total,
     required this.logs,
+    required this.onDelete,
+    required this.onDeleted,
   });
 
   @override
@@ -336,7 +404,7 @@ class _DayBlock extends StatelessWidget {
                   raw,
                   Theme.of(context).brightness,
                 );
-                return Padding(
+                final row = Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     children: [
@@ -404,6 +472,32 @@ class _DayBlock extends StatelessWidget {
                         ),
                       ),
                     ],
+                  ),
+                );
+                // Swipe left to delete; screen readers get the same thing as a
+                // named action, since a swipe is not available to them.
+                return Semantics(
+                  customSemanticsActions: {
+                    CustomSemanticsAction(label: 'Delete'.tr()): () async {
+                      if (await onDelete(log)) onDeleted(log);
+                    },
+                  },
+                  child: Dismissible(
+                    key: ValueKey('log-${log.id}'),
+                    direction: DismissDirection.endToStart,
+                    confirmDismiss: (_) => onDelete(log),
+                    onDismissed: (_) => onDeleted(log),
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 16),
+                      margin: const EdgeInsets.symmetric(vertical: 2),
+                      decoration: BoxDecoration(
+                        color: cs.error.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.delete_outline, color: cs.error),
+                    ),
+                    child: row,
                   ),
                 );
               }),

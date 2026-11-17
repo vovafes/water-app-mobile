@@ -113,7 +113,7 @@
   "Email": "E-Mail",
   "Enabled": "Aktiviert",
   "Energy drink": "Energydrink",
-  "Enter 10–5000 ml": "10–5000 ml eingeben",
+  "Enter 10–3000 ml": "10–3000 ml eingeben",
   "Enter your email and we will send you a password reset link.": "Gib deine E-Mail ein und wir senden dir einen Link zum Zurücksetzen.",
   "Espresso": "Espresso",
   "Every badge in the app, including the long ones worth chasing.": "Jedes Abzeichen der App, auch die langen, für die es sich lohnt.",
@@ -384,5 +384,11 @@
   "Your water goal": "Dein Wasserziel",
   "Your water intake, where the rest of your health data already lives.": "Deine Wasseraufnahme dort, wo deine übrigen Gesundheitsdaten schon liegen.",
   "Yours for good": "Für immer deins",
-  "{ml} ml logged": "{ml} ml erfasst"
+  "{ml} ml logged": "{ml} ml erfasst",
+  "Delete this entry?": "Diesen Eintrag löschen?",
+  "This removes it from your history and your daily total.": "Er wird aus dem Verlauf und aus deiner Tagessumme entfernt.",
+  "Could not delete the entry": "Eintrag konnte nicht gelöscht werden",
+  "Swipe to delete": "Zum Löschen wischen",
+  "Try again": "Erneut versuchen",
+  "By creating an account, you agree to:": "Mit der Registrierung stimmst du zu:"
 }

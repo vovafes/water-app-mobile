@@ -468,8 +468,7 @@ class _DayDetail extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  DateFormat(
-                    'EEEE, MMM d',
+                  DateFormat.MMMMEEEEd(
                     context.locale.languageCode,
                   ).format(date),
                   style: const TextStyle(

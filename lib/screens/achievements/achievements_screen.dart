@@ -3,6 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 import '../../services/api_service.dart';
 import '../../models/achievement.dart';
 import '../../theme.dart';
+import '../../widgets/tile_text_scale.dart';
 
 class AchievementsScreen extends StatefulWidget {
   const AchievementsScreen({super.key});
@@ -128,17 +129,21 @@ class AchievementsScreenState extends State<AchievementsScreen> {
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: 0.78,
-                          ),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        // A fixed height that grows with the (capped) text
+                        // scale; the old aspect ratio overflowed the tile
+                        // by 11 px at large system text.
+                        mainAxisExtent: 134 * tileTextScale(context),
+                      ),
                       itemCount: _visible.length,
-                      itemBuilder: (context, i) => _BadgeTile(
-                        achievement: _visible[i],
-                        onTap: () => _showDetail(context, _visible[i]),
+                      itemBuilder: (context, i) => TileTextScale(
+                        child: _BadgeTile(
+                          achievement: _visible[i],
+                          onTap: () => _showDetail(context, _visible[i]),
+                        ),
                       ),
                     ),
                 ],
@@ -444,7 +449,9 @@ class _BadgeDetail extends StatelessWidget {
               width: 96,
               height: 96,
               decoration: BoxDecoration(
-                color: unlocked ? BrandColors.amber500 : cs.surfaceContainerHigh,
+                color: unlocked
+                    ? BrandColors.amber500
+                    : cs.surfaceContainerHigh,
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,

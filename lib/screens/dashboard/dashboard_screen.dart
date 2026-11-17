@@ -7,6 +7,7 @@ import '../../models/drink.dart';
 import '../../theme.dart';
 import '../../widgets/drink_icon.dart';
 import '../../widgets/motion.dart';
+import '../../widgets/tile_text_scale.dart';
 import '../stats/streak_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -32,8 +33,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          DateFormat(
-            'EEEE, MMM d',
+          // MMMMEEEEd, not 'EEEE, MMM d': the pattern string put the day
+          // last in every language ("вторник, нояб. 17").
+          DateFormat.MMMMEEEEd(
             context.locale.languageCode,
           ).format(DateTime.now()),
         ),
@@ -73,6 +75,9 @@ class _HeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 22),
+      // The decorative drop below is positioned past the card's edge on
+      // purpose; without clipping it poked out above the card as a pale shape.
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
@@ -262,7 +267,7 @@ class _DrinkPicker extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => _VolumeSheet(drink: drink, dash: dash),
+      builder: (ctx) => VolumeSheet(drink: drink, dash: dash),
     );
   }
 
@@ -288,19 +293,23 @@ class _DrinkPicker extends StatelessWidget {
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   // Three across, matching the web's phone breakpoint. Four
                   // was narrow enough that Russian names ("Минеральная")
                   // broke mid-word.
                   crossAxisCount: 3,
                   mainAxisSpacing: 10,
                   crossAxisSpacing: 10,
-                  childAspectRatio: 1.0,
+                  // Height follows the (capped) system text size, so names
+                  // are no longer cut off with Large text on.
+                  mainAxisExtent: 112 * tileTextScale(context),
                 ),
                 itemCount: dash.drinks.length,
-                itemBuilder: (context, i) => _DrinkTile(
-                  drink: dash.drinks[i],
-                  onTap: () => _openVolumeSheet(context, dash.drinks[i]),
+                itemBuilder: (context, i) => TileTextScale(
+                  child: _DrinkTile(
+                    drink: dash.drinks[i],
+                    onTap: () => _openVolumeSheet(context, dash.drinks[i]),
+                  ),
                 ),
               ),
           ],
@@ -353,9 +362,11 @@ class _DrinkTile extends StatelessWidget {
               child: DrinkIcon(slug: drink.slug, color: Colors.white, size: 26),
             ),
             const SizedBox(height: 6),
-            // Expanded (rather than a bare Text) so sub-pixel rounding in
-            // the grid's tile height can never overflow the column.
-            Expanded(
+            // Flexible (rather than a bare Text) so sub-pixel rounding in
+            // the grid's tile height can never overflow the column, and
+            // unlike Expanded it lets the icon and name sit centred together
+            // instead of leaving the bottom third of the tile empty.
+            Flexible(
               child: Text(
                 // Seeded drink names double as translation keys (same as
                 // the web's __($drink->name)); user-created drinks fall
@@ -377,18 +388,40 @@ class _DrinkTile extends StatelessWidget {
   }
 }
 
-class _VolumeSheet extends StatefulWidget {
+/// The amount picker. Public only so its validation can be tested.
+@visibleForTesting
+class VolumeSheet extends StatefulWidget {
   final Drink drink;
   final DashboardProvider dash;
-  const _VolumeSheet({required this.drink, required this.dash});
+  const VolumeSheet({super.key, required this.drink, required this.dash});
 
   @override
-  State<_VolumeSheet> createState() => _VolumeSheetState();
+  State<VolumeSheet> createState() => VolumeSheetState();
 }
 
-class _VolumeSheetState extends State<_VolumeSheet> {
+class VolumeSheetState extends State<VolumeSheet> {
   final TextEditingController _custom = TextEditingController();
   bool _submitting = false;
+
+  /// Shown under the field. It used to be a SnackBar, which the scaffold
+  /// paints *behind* an open bottom sheet, so a bad amount looked like a
+  /// dead button until the sheet was closed.
+  String? _customError;
+
+  /// What the API accepts per entry (`between:10,3000`). The sheet used to
+  /// allow up to 5000, so 3001-5000 closed the sheet, moved the ring and then
+  /// rolled back with "Failed to log drink".
+  static const int _minMl = 10;
+  static const int _maxMl = 3000;
+
+  void _submitCustom() {
+    final v = int.tryParse(_custom.text.trim());
+    if (v == null || v < _minMl || v > _maxMl) {
+      setState(() => _customError = 'Enter 10–3000 ml'.tr());
+      return;
+    }
+    _log(v);
+  }
 
   @override
   void dispose() {
@@ -529,11 +562,11 @@ class _VolumeSheetState extends State<_VolumeSheet> {
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
                 mainAxisSpacing: 10,
                 crossAxisSpacing: 10,
-                childAspectRatio: 1.6,
+                mainAxisExtent: 66 * tileTextScale(context),
               ),
               itemCount: volumes.length,
               itemBuilder: (context, i) {
@@ -574,26 +607,27 @@ class _VolumeSheetState extends State<_VolumeSheet> {
                   child: TextField(
                     controller: _custom,
                     keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.done,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(4),
+                    ],
+                    onChanged: (_) {
+                      if (_customError != null) {
+                        setState(() => _customError = null);
+                      }
+                    },
+                    onSubmitted: (_) => _submitCustom(),
                     decoration: InputDecoration(
                       hintText: 'ml'.tr(),
                       isDense: true,
+                      errorText: _customError,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
-                  onPressed: _submitting
-                      ? null
-                      : () {
-                          final v = int.tryParse(_custom.text);
-                          if (v == null || v < 10 || v > 5000) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Enter 10–5000 ml'.tr())),
-                            );
-                            return;
-                          }
-                          _log(v);
-                        },
+                  onPressed: _submitting ? null : _submitCustom,
                   child: Text('Log'.tr()),
                 ),
               ],

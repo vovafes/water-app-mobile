@@ -113,7 +113,7 @@
   "Email": "Email",
   "Enabled": "Enabled",
   "Energy drink": "Energy drink",
-  "Enter 10–5000 ml": "Enter 10–5000 ml",
+  "Enter 10–3000 ml": "Enter 10–3000 ml",
   "Enter your email and we will send you a password reset link.": "Enter your email and we will send you a password reset link.",
   "Espresso": "Espresso",
   "Every badge in the app, including the long ones worth chasing.": "Every badge in the app, including the long ones worth chasing.",
@@ -384,5 +384,11 @@
   "Your water goal": "Your water goal",
   "Your water intake, where the rest of your health data already lives.": "Your water intake, where the rest of your health data already lives.",
   "Yours for good": "Yours for good",
-  "{ml} ml logged": "{ml} ml logged"
+  "{ml} ml logged": "{ml} ml logged",
+  "Delete this entry?": "Delete this entry?",
+  "This removes it from your history and your daily total.": "This removes it from your history and your daily total.",
+  "Could not delete the entry": "Could not delete the entry",
+  "Swipe to delete": "Swipe to delete",
+  "Try again": "Try again",
+  "By creating an account, you agree to:": "By creating an account, you agree to:"
 }

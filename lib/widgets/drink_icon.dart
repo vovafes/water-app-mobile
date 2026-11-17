@@ -31,7 +31,14 @@ class DrinkIcon extends StatelessWidget {
 $body
 </svg>
 ''';
-    return SvgPicture.string(svg, width: size, height: size);
+    // flutter_svg ignores a `color` attribute on the root element, so without
+    // this every `currentColor` path rendered black regardless of [color].
+    return SvgPicture.string(
+      svg,
+      width: size,
+      height: size,
+      theme: SvgTheme(currentColor: color),
+    );
   }
 
   static String _bodyFor(String? slug) {

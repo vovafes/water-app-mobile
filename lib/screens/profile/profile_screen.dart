@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../models/profile_vocabulary.dart';
 import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/reminder_provider.dart';
@@ -285,12 +286,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _ChoiceTile(
                           icon: Icons.directions_run,
                           label: 'Activity'.tr(),
-                          value: _strOf('activity_level') ?? 'moderate',
+                          value: ProfileVocabulary.normalize(
+                            'activity_level',
+                            _strOf('activity_level'),
+                            'moderate',
+                          ),
                           options: {
-                            'low': 'Low'.tr(),
+                            'sedentary': 'Sedentary'.tr(),
+                            'light': 'Light'.tr(),
                             'moderate': 'Moderate'.tr(),
-                            'high': 'High'.tr(),
-                            'athlete': 'Athlete'.tr(),
+                            'active': 'Active'.tr(),
+                            'intense': 'Intense'.tr(),
                           },
                           onChanged: (v) => _saveField({'activity_level': v}),
                         ),
@@ -298,12 +304,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _ChoiceTile(
                           icon: Icons.thermostat_outlined,
                           label: 'Climate'.tr(),
-                          value: _strOf('climate_type') ?? 'temperate',
+                          value: ProfileVocabulary.normalize(
+                            'climate_type',
+                            _strOf('climate_type'),
+                            'temperate',
+                          ),
                           options: {
                             'cold': 'Cold'.tr(),
                             'temperate': 'Temperate'.tr(),
+                            'warm': 'Warm'.tr(),
                             'hot': 'Hot'.tr(),
-                            'tropical': 'Tropical'.tr(),
                           },
                           onChanged: (v) => _saveField({'climate_type': v}),
                         ),
@@ -321,12 +331,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _ChoiceTile(
                           icon: Icons.track_changes_outlined,
                           label: 'Goal'.tr(),
-                          value: _strOf('goal') ?? 'norm',
+                          value: ProfileVocabulary.normalize(
+                            'goal',
+                            _strOf('goal'),
+                            'norm',
+                          ),
                           options: {
-                            'norm': 'Norm'.tr(),
-                            'wellbeing': 'Wellbeing'.tr(),
-                            'routine': 'Routine'.tr(),
-                            'weight': 'Lose weight'.tr(),
+                            'minus': 'Lose weight'.tr(),
+                            'norm': 'Stay fit'.tr(),
+                            'plus': 'Gain muscle'.tr(),
                           },
                           onChanged: (v) => _saveField({'goal': v}),
                         ),

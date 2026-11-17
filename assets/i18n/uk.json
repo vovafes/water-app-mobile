@@ -113,7 +113,7 @@
   "Email": "Email",
   "Enabled": "Увімкнено",
   "Energy drink": "Енергетик",
-  "Enter 10–5000 ml": "Введіть 10–5000 мл",
+  "Enter 10–3000 ml": "Введіть 10–3000 мл",
   "Enter your email and we will send you a password reset link.": "Введи email — ми надішлемо посилання для скидання паролю.",
   "Espresso": "Еспресо",
   "Every badge in the app, including the long ones worth chasing.": "Усі бейджі застосунку, зокрема довгі, за якими варто гнатися.",
@@ -384,5 +384,11 @@
   "Your water goal": "Твоя норма води",
   "Your water intake, where the rest of your health data already lives.": "Твоя вода там, де вже лежать інші дані про здоров'я.",
   "Yours for good": "Назавжди твоє",
-  "{ml} ml logged": "{ml} мл записано"
+  "{ml} ml logged": "{ml} мл записано",
+  "Delete this entry?": "Видалити цей запис?",
+  "This removes it from your history and your daily total.": "Він зникне з історії та з денного підсумку.",
+  "Could not delete the entry": "Не вдалося видалити запис",
+  "Swipe to delete": "Змахніть, щоб видалити",
+  "Try again": "Повторити",
+  "By creating an account, you agree to:": "Створюючи акаунт, ви приймаєте:"
 }

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme.dart';
+import '../../widgets/legal_footer.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -114,6 +115,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         'Create account'.tr(),
                         style: const TextStyle(fontSize: 16),
                       ),
+              ),
+              const SizedBox(height: 16),
+              // The website's sign-up form carries this line; the app's did
+              // not, so an account could be made here without ever seeing the
+              // Terms or the Privacy Policy.
+              Text(
+                'By creating an account, you agree to:'.tr(),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+              Wrap(
+                alignment: WrapAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: () => openExternal(
+                      LegalUrls.terms(context.locale.languageCode),
+                    ),
+                    child: Text('Terms of Use'.tr()),
+                  ),
+                  TextButton(
+                    onPressed: () => openExternal(
+                      LegalUrls.privacy(context.locale.languageCode),
+                    ),
+                    child: Text('Privacy Policy'.tr()),
+                  ),
+                ],
               ),
             ],
           ),

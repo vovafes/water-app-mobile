@@ -46,6 +46,21 @@ Related: fixed `SizedBox(height: 44)`-style metrics around text will still
 break at large system font sizes. `main.dart` clamps text scaling for the
 nav bar only.
 
+### History loads at most 200 entries, labelled "All time"
+`history_screen.dart` asks for `per_page=200` and has no paging. After a few
+weeks of regular logging the oldest entries silently drop off the "All" view.
+Needs a "load more" at the end of the list.
+
+### Landscape works but is cramped
+The app rotates and nothing overflows, but the hero card spans the full width
+and only two drink rows are visible. Locking to portrait is the cheap fix;
+a two-column layout is the real one.
+
+### iOS has not been run since the 2026-11-17 pass
+The walkthrough was done on Android (Pixel 10 emulator). The changes are
+shared Dart code, but the system-bar styling in `main.dart`, the swipe-to-delete
+in History and the session splash should be looked at once on an iPhone.
+
 ### `make-icon.ps1` is Windows-only
 `System.Drawing` plus a hardcoded `C:\dev\...` output path, so the app icon
 cannot be re-rendered on the Mac. Not needed for an iOS build, but there is
