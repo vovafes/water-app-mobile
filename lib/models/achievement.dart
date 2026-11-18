@@ -22,6 +22,12 @@ class Achievement {
   /// 'done', 'current' (the rung being climbed) or 'locked'.
   final String state;
 
+  /// Unlocked since the screen was last opened: plays the unlock animation once.
+  final bool isNew;
+
+  /// Rarity from the backend: 1 everyday, 2 milestone, 3 rare. Drawn as rings.
+  final int tier;
+
   const Achievement({
     required this.id,
     required this.name,
@@ -37,6 +43,8 @@ class Achievement {
     this.percent = 0,
     this.unit,
     String? state,
+    this.isNew = false,
+    this.tier = 1,
   }) : state = state ?? (unlocked ? 'done' : 'locked');
 
   /// "4 / 10", or "4,200 / 10,000 ml" for volumes.
@@ -67,6 +75,8 @@ class Achievement {
       percent: asInt(json['percent'], unlocked ? 100 : 0),
       unit: json['unit']?.toString(),
       state: json['state']?.toString(),
+      isNew: json['is_new'] == true,
+      tier: asInt(json['tier'], 1).clamp(1, 3),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 import '../../services/api_service.dart';
 import '../../models/achievement.dart';
 import '../../theme.dart';
+import '../../widgets/achievement_badge.dart';
 import '../../widgets/achievement_glyph.dart';
 import '../../widgets/points_label.dart';
 
@@ -16,6 +17,15 @@ class AchievementsScreen extends StatefulWidget {
 class AchievementsScreenState extends State<AchievementsScreen> {
   AchievementOverview? _overview;
   bool _loading = true;
+
+  /// Unlocked badges that play their animation on this visit. Kept for the
+  /// life of the screen so the animation is not cut short by the next reload.
+  final Set<int> _animate = {};
+
+  /// Ids already animated (and reported as seen). The tab reloads on every
+  /// visit and a second load can arrive before the server has recorded the
+  /// first report; this stops the same badge animating twice.
+  final Set<int> _played = {};
 
   @override
   void initState() {
@@ -41,6 +51,22 @@ class AchievementsScreenState extends State<AchievementsScreen> {
       }
       _loading = false;
     });
+    _announceNewUnlocks();
+  }
+
+  /// Plays the unlock animation for badges unlocked since the last visit, then
+  /// tells the server they have been seen so it does not repeat next time.
+  void _announceNewUnlocks() {
+    final fresh = [
+      for (final g in _overview?.groups ?? const <AchievementGroup>[])
+        for (final a in g.items)
+          if (a.unlocked && a.isNew && !_played.contains(a.id)) a.id,
+    ];
+    if (fresh.isEmpty) return;
+    _played.addAll(fresh);
+    setState(() => _animate.addAll(fresh));
+    // Fire and forget: if it fails the animation simply plays once more later.
+    ApiService.post('/achievements/seen', {'ids': fresh});
   }
 
   void _showDetail(BuildContext context, Achievement a) {
@@ -91,6 +117,7 @@ class AchievementsScreenState extends State<AchievementsScreen> {
                     for (final group in overview.groups) ...[
                       _GroupCard(
                         group: group,
+                        animate: _animate,
                         onTap: (a) => _showDetail(context, a),
                       ),
                       const SizedBox(height: 14),
@@ -231,8 +258,13 @@ class _NextGoal extends StatelessWidget {
 /// One ladder, drawn as a vertical path: the part already climbed is amber.
 class _GroupCard extends StatelessWidget {
   final AchievementGroup group;
+  final Set<int> animate;
   final void Function(Achievement) onTap;
-  const _GroupCard({required this.group, required this.onTap});
+  const _GroupCard({
+    required this.group,
+    required this.animate,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -267,6 +299,7 @@ class _GroupCard extends StatelessWidget {
             for (var i = 0; i < group.items.length; i++)
               _Rung(
                 achievement: group.items[i],
+                animate: animate.contains(group.items[i].id),
                 isLast: i == group.items.length - 1,
                 onTap: () => onTap(group.items[i]),
               ),
@@ -279,10 +312,12 @@ class _GroupCard extends StatelessWidget {
 
 class _Rung extends StatelessWidget {
   final Achievement achievement;
+  final bool animate;
   final bool isLast;
   final VoidCallback onTap;
   const _Rung({
     required this.achievement,
+    required this.animate,
     required this.isLast,
     required this.onTap,
   });
@@ -292,17 +327,6 @@ class _Rung extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final done = achievement.state == 'done';
     final current = achievement.state == 'current';
-
-    final nodeFill = done
-        ? BrandColors.amber500
-        : current
-        ? cs.surface
-        : cs.surfaceContainerHigh;
-    final glyphColor = done
-        ? Colors.white
-        : current
-        ? BrandColors.amber500
-        : cs.onSurface.withValues(alpha: 0.42);
 
     return InkWell(
       onTap: onTap,
@@ -315,23 +339,7 @@ class _Rung extends StatelessWidget {
               width: 40,
               child: Column(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: nodeFill,
-                      shape: BoxShape.circle,
-                      border: current
-                          ? Border.all(color: BrandColors.amber500, width: 2)
-                          : null,
-                    ),
-                    alignment: Alignment.center,
-                    child: AchievementGlyph(
-                      achievement: achievement,
-                      size: 20,
-                      color: glyphColor,
-                    ),
-                  ),
+                  AchievementBadge(achievement: achievement, animate: animate),
                   if (!isLast)
                     Expanded(
                       child: Container(
@@ -344,7 +352,7 @@ class _Rung extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Expanded(
               child: Padding(
                 padding: EdgeInsets.only(bottom: isLast ? 4 : 18, top: 2),
@@ -355,8 +363,42 @@ class _Rung extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: Text(
-                            context.tr(achievement.name),
+                          child: Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(text: context.tr(achievement.name)),
+                                // `animate` outlives a reload of the list, `isNew` does not: the
+                                // tab reloads on every visit and the second answer says "seen".
+                                if (animate || achievement.isNew)
+                                  WidgetSpan(
+                                    alignment: PlaceholderAlignment.middle,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(left: 8),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 7,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: BrandColors.amber500
+                                              .withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'New'.tr(),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: BrandColors.amber500,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                             style: TextStyle(
                               fontSize: 14.5,
                               fontWeight: FontWeight.w600,
