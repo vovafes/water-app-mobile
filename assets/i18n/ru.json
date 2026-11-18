@@ -408,5 +408,6 @@
   "Email sent": "Письмо отправлено",
   "Could not send the email": "Не удалось отправить письмо",
   "Not confirmed yet. Open the link in the email, then try again.": "Пока не подтверждено. Открой ссылку из письма и попробуй ещё раз.",
-  "Wrong address? Log out": "Не тот адрес? Выйти"
+  "Wrong address? Log out": "Не тот адрес? Выйти",
+  "Load more": "Загрузить ещё"
 }

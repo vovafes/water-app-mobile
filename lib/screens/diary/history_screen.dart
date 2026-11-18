@@ -20,6 +20,14 @@ class HistoryScreenState extends State<HistoryScreen> {
   List<DrinkLog> _logs = [];
   bool _loading = true;
 
+  /// Entries come a page at a time. It used to ask for the 200 newest and
+  /// stop, so after a few weeks of regular logging the oldest entries just
+  /// vanished from the "All" view.
+  static const _pageSize = 50;
+  int _page = 1;
+  int _lastPage = 1;
+  bool _loadingMore = false;
+
   // Date range filter — null on both means "all" (last 50 entries).
   DateTime? _from;
   DateTime? _to;
@@ -40,7 +48,22 @@ class HistoryScreenState extends State<HistoryScreen> {
     if (!mounted) return;
     setState(() => _loading = true);
 
-    final params = <String>['per_page=200'];
+    final result = await _fetchPage(1);
+
+    if (!mounted) return;
+    setState(() {
+      if (result != null) {
+        _logs = result.logs;
+        _page = 1;
+        _lastPage = result.lastPage;
+      }
+      _loading = false;
+    });
+  }
+
+  /// One page of entries for the current range, or null when the request failed.
+  Future<({List<DrinkLog> logs, int lastPage})?> _fetchPage(int page) async {
+    final params = <String>['per_page=$_pageSize', 'page=$page'];
     if (_from != null) {
       params.add('from=${DateFormat('yyyy-MM-dd').format(_from!)}');
     }
@@ -48,28 +71,41 @@ class HistoryScreenState extends State<HistoryScreen> {
       params.add('to=${DateFormat('yyyy-MM-dd').format(_to!)}');
     }
     final res = await ApiService.get('/drink-logs?${params.join('&')}');
+    if (res['success'] != true) return null;
 
+    final body = res['data'];
+    final List rawList = body is Map && body['data'] is List
+        ? body['data'] as List
+        : body is List
+        ? body
+        : const [];
+    final last = body is Map && body['last_page'] is num
+        ? (body['last_page'] as num).toInt()
+        : page;
+    return (
+      logs: rawList
+          .whereType<Map<String, dynamic>>()
+          .map(DrinkLog.fromJson)
+          .toList(),
+      lastPage: last,
+    );
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || _page >= _lastPage) return;
+    setState(() => _loadingMore = true);
+    final result = await _fetchPage(_page + 1);
     if (!mounted) return;
-    if (res['success'] == true) {
-      final body = res['data'];
-      List rawList;
-      if (body is Map && body['data'] is List) {
-        rawList = body['data'] as List;
-      } else if (body is List) {
-        rawList = body;
-      } else {
-        rawList = const [];
-      }
-      setState(() {
-        _logs = rawList
-            .whereType<Map<String, dynamic>>()
-            .map(DrinkLog.fromJson)
-            .toList();
-        _loading = false;
-      });
-    } else {
-      setState(() => _loading = false);
-    }
+    setState(() {
+      _loadingMore = false;
+      if (result == null) return;
+      // An entry logged or deleted meanwhile shifts the pages by one; do not
+      // show the same entry twice.
+      final seen = _logs.map((l) => l.id).toSet();
+      _logs = [..._logs, ...result.logs.where((l) => !seen.contains(l.id))];
+      _page += 1;
+      _lastPage = result.lastPage;
+    });
   }
 
   /// Asks first, then removes the entry on the server and drops it from the
@@ -224,7 +260,11 @@ class HistoryScreenState extends State<HistoryScreen> {
                         Center(
                           child: Column(
                             children: [
-                              const Text('🗒️', style: TextStyle(fontSize: 48)),
+                              Icon(
+                                Icons.event_note_outlined,
+                                size: 48,
+                                color: cs.outline,
+                              ),
                               const SizedBox(height: 8),
                               Text(
                                 'No drinks in this range'.tr(),
@@ -242,19 +282,40 @@ class HistoryScreenState extends State<HistoryScreen> {
                     onRefresh: _load,
                     child: ListView(
                       padding: const EdgeInsets.all(16),
-                      children: grouped.entries.map((entry) {
-                        final total = entry.value.fold(
-                          0.0,
-                          (s, l) => s + l.volumeMl,
-                        );
-                        return _DayBlock(
-                          label: entry.key,
-                          total: total.toInt(),
-                          logs: entry.value,
-                          onDelete: _deleteLog,
-                          onDeleted: _removeLog,
-                        );
-                      }).toList(),
+                      children: [
+                        for (final (i, entry) in grouped.entries.indexed)
+                          _DayBlock(
+                            label: entry.key,
+                            // While more pages are waiting, the oldest day shown
+                            // may be cut off mid-day, so its total would be
+                            // wrong. Better no number than a wrong one.
+                            total:
+                                (_page < _lastPage && i == grouped.length - 1)
+                                ? null
+                                : entry.value
+                                      .fold(0.0, (s, l) => s + l.volumeMl)
+                                      .toInt(),
+                            logs: entry.value,
+                            onDelete: _deleteLog,
+                            onDeleted: _removeLog,
+                          ),
+                        if (_page < _lastPage)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4, bottom: 24),
+                            child: OutlinedButton(
+                              onPressed: _loadingMore ? null : _loadMore,
+                              child: _loadingMore
+                                  ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text('Load more'.tr()),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
           ),
@@ -344,7 +405,9 @@ class _FilterBar extends StatelessWidget {
 
 class _DayBlock extends StatelessWidget {
   final String label;
-  final int total;
+
+  /// Null while the day may be incomplete (more pages still to load).
+  final int? total;
   final List<DrinkLog> logs;
   final Future<bool> Function(DrinkLog log) onDelete;
   final void Function(DrinkLog log) onDeleted;
@@ -377,24 +440,25 @@ class _DayBlock extends StatelessWidget {
                       fontSize: 14,
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: cs.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '$total ${'ml'.tr()}',
-                      style: TextStyle(
-                        color: cs.onPrimaryContainer,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
+                  if (total != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: cs.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '$total ${'ml'.tr()}',
+                        style: TextStyle(
+                          color: cs.onPrimaryContainer,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
               const SizedBox(height: 8),

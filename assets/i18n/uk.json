@@ -408,5 +408,6 @@
   "Email sent": "Лист надіслано",
   "Could not send the email": "Не вдалося надіслати лист",
   "Not confirmed yet. Open the link in the email, then try again.": "Ще не підтверджено. Відкрийте посилання з листа й спробуйте ще раз.",
-  "Wrong address? Log out": "Не та адреса? Вийти"
+  "Wrong address? Log out": "Не та адреса? Вийти",
+  "Load more": "Завантажити ще"
 }
