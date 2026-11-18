@@ -12,6 +12,7 @@ import 'services/notification_service.dart';
 import 'services/purchase_service.dart';
 import 'services/store_purchase_service.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/verify_email_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/achievements/achievements_screen.dart';
 import 'screens/diary/history_screen.dart';
@@ -221,6 +222,12 @@ class _AppRootState extends State<_AppRoot> {
       // the logged-out branch never reads _tab.
       _tab = 0;
       return const LoginScreen();
+    }
+
+    // Signed in, but the address has not been confirmed: the backend answers
+    // 403 to everything else, so this is the only screen that can work.
+    if (!auth.user!.isEmailVerified) {
+      return const VerifyEmailScreen();
     }
 
     if (auth.needsOnboarding) {

@@ -66,6 +66,15 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Asks the backend to send the confirmation link again.
+  Future<bool> resendVerification() async {
+    final res = await ApiService.post(
+      '/auth/email/verification-notification',
+      {},
+    );
+    return res['success'] == true;
+  }
+
   /// Pulls a friendly error message out of a Laravel 422 validation response.
   String _readError(Map<String, dynamic> body, String fallback) {
     final msg = body['message'];

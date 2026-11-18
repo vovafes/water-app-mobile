@@ -398,5 +398,15 @@
   "Big sips": "Великі порції",
   "Total water": "Усього води",
   "Variety": "Різноманітність",
-  "Time of day": "Час доби"
+  "Time of day": "Час доби",
+  "Check your email": "Перевірте пошту",
+  "We sent a confirmation link to {email}. Open it to start using Water App.": "Ми надіслали посилання для підтвердження на {email}. Відкрийте його, щоб почати користуватися Water App.",
+  "Look in your spam folder too.": "Загляньте й у папку «Спам».",
+  "I've confirmed it": "Я підтвердив",
+  "Resend email": "Надіслати лист ще раз",
+  "Resend in {seconds} s": "Повторити через {seconds} с",
+  "Email sent": "Лист надіслано",
+  "Could not send the email": "Не вдалося надіслати лист",
+  "Not confirmed yet. Open the link in the email, then try again.": "Ще не підтверджено. Відкрийте посилання з листа й спробуйте ще раз.",
+  "Wrong address? Log out": "Не та адреса? Вийти"
 }

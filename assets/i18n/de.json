@@ -398,5 +398,15 @@
   "Big sips": "Große Schlucke",
   "Total water": "Gesamtmenge",
   "Variety": "Vielfalt",
-  "Time of day": "Tageszeit"
+  "Time of day": "Tageszeit",
+  "Check your email": "Schau in dein Postfach",
+  "We sent a confirmation link to {email}. Open it to start using Water App.": "Wir haben einen Bestätigungslink an {email} geschickt. Öffne ihn, um Water App zu nutzen.",
+  "Look in your spam folder too.": "Schau auch im Spam-Ordner nach.",
+  "I've confirmed it": "Ich habe bestätigt",
+  "Resend email": "E-Mail erneut senden",
+  "Resend in {seconds} s": "Erneut senden in {seconds} s",
+  "Email sent": "E-Mail gesendet",
+  "Could not send the email": "E-Mail konnte nicht gesendet werden",
+  "Not confirmed yet. Open the link in the email, then try again.": "Noch nicht bestätigt. Öffne den Link in der E-Mail und versuche es dann erneut.",
+  "Wrong address? Log out": "Falsche Adresse? Abmelden"
 }

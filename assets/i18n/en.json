@@ -398,5 +398,15 @@
   "Big sips": "Big sips",
   "Total water": "Total water",
   "Variety": "Variety",
-  "Time of day": "Time of day"
+  "Time of day": "Time of day",
+  "Check your email": "Check your email",
+  "We sent a confirmation link to {email}. Open it to start using Water App.": "We sent a confirmation link to {email}. Open it to start using Water App.",
+  "Look in your spam folder too.": "Look in your spam folder too.",
+  "I've confirmed it": "I've confirmed it",
+  "Resend email": "Resend email",
+  "Resend in {seconds} s": "Resend in {seconds} s",
+  "Email sent": "Email sent",
+  "Could not send the email": "Could not send the email",
+  "Not confirmed yet. Open the link in the email, then try again.": "Not confirmed yet. Open the link in the email, then try again.",
+  "Wrong address? Log out": "Wrong address? Log out"
 }
