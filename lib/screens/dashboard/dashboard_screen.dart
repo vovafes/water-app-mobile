@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../providers/dashboard_provider.dart';
@@ -95,12 +96,16 @@ class _HeroCard extends StatelessWidget {
           Positioned(
             right: -16,
             bottom: -28,
-            child: Text(
-              '💧',
-              style: TextStyle(
-                fontSize: 130,
-                color: Colors.white.withValues(alpha: 0.12),
-              ),
+            // The same drop as the app icon and the website's hero, drawn
+            // rather than an emoji (a different picture on every phone) or a
+            // Material icon (heavier, with an inner arc).
+            child: SvgPicture.string(
+              '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
+              '<path fill="#FFFFFF" fill-opacity="0.1" '
+              'd="M12 2.5S5.5 10 5.5 14.5a6.5 6.5 0 0 0 13 0C18.5 10 12 2.5 12 2.5z"/>'
+              '</svg>',
+              width: 150,
+              height: 150,
             ),
           ),
           Row(
@@ -225,7 +230,11 @@ class _HeroCard extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('🔥'),
+                            const Icon(
+                              Icons.local_fire_department_rounded,
+                              size: 18,
+                              color: BrandColors.amber300,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               '${dash.streak} ${'day streak'.tr()}',
@@ -350,13 +359,6 @@ class _DrinkTile extends StatelessWidget {
                 // chip's circle invisible.
                 color: tone.rail,
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: tone.rail.withValues(alpha: 0.35),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
               ),
               alignment: Alignment.center,
               child: DrinkIcon(slug: drink.slug, color: Colors.white, size: 26),

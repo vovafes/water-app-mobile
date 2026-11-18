@@ -1,6 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import '../theme.dart';
 
 /// Shown while a saved session is being checked with the server, and when
 /// that check could not reach it.
@@ -27,24 +26,13 @@ class SessionSplash extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 76,
-                height: 76,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      BrandColors.gradientStartStrong,
-                      BrandColors.gradientEndStrong,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: const Icon(
-                  Icons.water_drop,
-                  color: Colors.white,
-                  size: 40,
+              // The real app icon, as on the sign-in screen.
+              ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: Image.asset(
+                  'assets/icon/icon.png',
+                  width: 76,
+                  height: 76,
                 ),
               ),
               const SizedBox(height: 28),

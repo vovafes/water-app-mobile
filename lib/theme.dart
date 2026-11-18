@@ -36,6 +36,7 @@ class BrandColors {
   static const slate950 = Color(0xFF020617);
 
   // Status
+  static const amber300 = Color(0xFFFCD34D);
   static const amber500 = Color(0xFFF59E0B);
   static const rose500 = Color(0xFFF43F5E);
   static const emerald500 = Color(0xFF10B981);

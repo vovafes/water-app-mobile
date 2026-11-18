@@ -264,9 +264,10 @@ class _StreakDetailScreenState extends State<StreakDetailScreen> {
                                     ),
                                   ),
                                   alignment: Alignment.center,
-                                  child: const Text(
-                                    '🔥',
-                                    style: TextStyle(fontSize: 9),
+                                  child: const Icon(
+                                    Icons.local_fire_department_rounded,
+                                    size: 11,
+                                    color: Colors.white,
                                   ),
                                 ),
                               );
@@ -329,7 +330,11 @@ class _StreakHero extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text('🔥', style: TextStyle(fontSize: 60)),
+              const Icon(
+                Icons.local_fire_department_rounded,
+                size: 64,
+                color: Colors.white,
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -489,7 +494,11 @@ class _DayDetail extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text('🔥', style: TextStyle(fontSize: 12)),
+                        const Icon(
+                          Icons.local_fire_department_rounded,
+                          size: 14,
+                          color: BrandColors.amber500,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'Goal hit'.tr(),
@@ -658,7 +667,11 @@ class _Legend extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: const Text('🔥', style: TextStyle(fontSize: 9)),
+              child: const Icon(
+                Icons.local_fire_department_rounded,
+                size: 11,
+                color: Colors.white,
+              ),
             ),
             'Goal hit'.tr(),
           ),

@@ -54,9 +54,7 @@ class _PremiumPromptSheet extends StatelessWidget {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                gradient: const LinearGradient(
-                  colors: [BrandColors.gradientStart, BrandColors.gradientEnd],
-                ),
+                color: BrandColors.sky500,
               ),
               child: const Icon(Icons.workspace_premium, color: Colors.white),
             ),

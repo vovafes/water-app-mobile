@@ -655,11 +655,7 @@ class _HeaderState extends State<_Header> {
                   width: 84,
                   height: 84,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [BrandColors.sky400, BrandColors.cyan500],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: BrandColors.sky500,
                     shape: BoxShape.circle,
                     image: avatarUrl != null
                         ? DecorationImage(
