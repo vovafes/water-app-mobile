@@ -3,6 +3,9 @@ class Achievement {
   final String name;
   final String description;
   final String? icon;
+
+  /// Which drawn icon to use; null for achievements an admin added.
+  final String? iconKey;
   final String? slug;
   final int points;
   final bool unlocked;
@@ -13,6 +16,7 @@ class Achievement {
     required this.name,
     required this.description,
     this.icon,
+    this.iconKey,
     this.slug,
     this.points = 0,
     required this.unlocked,
@@ -25,6 +29,7 @@ class Achievement {
       name: (json['name'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
       icon: json['icon']?.toString(),
+      iconKey: json['icon_key']?.toString(),
       slug: json['slug']?.toString(),
       points: json['points'] is num ? (json['points'] as num).toInt() : 0,
       unlocked: json['unlocked'] == true,

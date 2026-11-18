@@ -3,6 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 import '../../services/api_service.dart';
 import '../../models/achievement.dart';
 import '../../theme.dart';
+import '../../widgets/achievement_glyph.dart';
 import '../../widgets/points_label.dart';
 import '../../widgets/tile_text_scale.dart';
 
@@ -358,21 +359,13 @@ class _BadgeTile extends StatelessWidget {
                         : null,
                   ),
                   alignment: Alignment.center,
-                  child: achievement.icon != null
-                      ? Text(
-                          achievement.icon!,
-                          style: TextStyle(
-                            fontSize: 26,
-                            color: unlocked ? null : cs.outline,
-                          ),
-                        )
-                      : Icon(
-                          unlocked
-                              ? Icons.emoji_events_rounded
-                              : Icons.lock_outline_rounded,
-                          size: 28,
-                          color: unlocked ? BrandColors.amber500 : cs.outline,
-                        ),
+                  child: AchievementGlyph(
+                    achievement: achievement,
+                    size: 28,
+                    color: unlocked
+                        ? BrandColors.amber500
+                        : cs.onSurface.withValues(alpha: 0.42),
+                  ),
                 ),
                 if (unlocked)
                   Positioned(
@@ -474,18 +467,11 @@ class _BadgeDetail extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
-                child: achievement.icon != null
-                    ? Text(
-                        achievement.icon!,
-                        style: const TextStyle(fontSize: 48),
-                      )
-                    : Icon(
-                        unlocked
-                            ? Icons.emoji_events_rounded
-                            : Icons.lock_outline_rounded,
-                        size: 50,
-                        color: unlocked ? Colors.white : cs.outline,
-                      ),
+                child: AchievementGlyph(
+                  achievement: achievement,
+                  size: 50,
+                  color: unlocked ? Colors.white : cs.outline,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
