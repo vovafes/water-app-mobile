@@ -50,9 +50,11 @@ android {
 
     buildTypes {
         release {
-            // Use the release signing config when key.properties exists,
-            // otherwise fall back to the debug keys so `flutter run --release`
-            // still works for local testing without the keystore.
+            // Signed with the real key when key.properties exists. Without it
+            // the build used to fall back to the debug key *silently*: an
+            // artifact signed that way is rejected by Play, or worse, uploaded
+            // and then impossible to update under the right key. The guard
+            // below turns that into a failure unless it is asked for.
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")
             } else {
@@ -65,6 +67,23 @@ android {
                 "proguard-rules.pro",
             )
         }
+    }
+}
+
+// Refuse to build a release artifact with the debug key. Set
+// ALLOW_DEBUG_SIGNING=true to build one anyway for local testing
+// (`flutter run --release` against a device); never for anything uploaded.
+// Checked when the task graph is built, so `--dry-run` trips it too, which is
+// how CI proves the guard is still there.
+gradle.taskGraph.whenReady {
+    val buildsRelease = allTasks.any { it.name.contains("Release", ignoreCase = true) && it.project.path == ":app" }
+    val allowed = System.getenv("ALLOW_DEBUG_SIGNING") == "true"
+    if (buildsRelease && !keystorePropertiesFile.exists() && !allowed) {
+        throw GradleException(
+            "No android/key.properties: a release build would be signed with the DEBUG key. " +
+                "Create the keystore (android/make-keystore.ps1) and key.properties, or set " +
+                "ALLOW_DEBUG_SIGNING=true for a local test build that will not be uploaded."
+        )
     }
 }
 

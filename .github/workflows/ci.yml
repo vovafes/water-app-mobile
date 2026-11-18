@@ -28,3 +28,43 @@ jobs:
 
       - name: Test
         run: flutter test
+
+  # A release build must refuse to be signed with the debug key. This runs the
+  # Gradle task graph only (--dry-run), so it takes seconds and needs no
+  # keystore; it fails if the guard in android/app/build.gradle.kts is removed.
+  release-signing-guard:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.1'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Without key.properties a release build must fail
+        working-directory: android
+        run: |
+          if ./gradlew :app:assembleRelease --dry-run > guard.log 2>&1; then
+            echo "::error::A release build was allowed without android/key.properties (it would be signed with the debug key)."
+            exit 1
+          fi
+          grep -q "signed with the DEBUG key" guard.log || { echo "::error::It failed, but not because of the signing guard:"; tail -30 guard.log; exit 1; }
+          echo "guard works"
+
+      - name: It is still possible to ask for it explicitly
+        working-directory: android
+        env:
+          ALLOW_DEBUG_SIGNING: 'true'
+        run: ./gradlew :app:assembleRelease --dry-run

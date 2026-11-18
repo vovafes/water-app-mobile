@@ -76,9 +76,11 @@ means you can never publish an update to the same listing — Play identifies
 the app by signing key, and the only escape is enrolling in Play App Signing
 *before* you lose it, or starting a new listing with zero installs.
 
-`build.gradle.kts` falls back to the debug key when `key.properties` is
-absent, so `flutter build apk --release` on a fresh clone silently produces
-an unpublishable artifact. Verify what you actually built:
+A release build now **refuses** to run without `key.properties` instead of
+quietly signing with the debug key (a guard in `build.gradle.kts`, kept honest
+by the `release-signing-guard` CI job). To build a release artifact for a local
+test that will never be uploaded, set `ALLOW_DEBUG_SIGNING=true` for that
+command. Verify what you actually built:
 
 ```powershell
 $env:LOCALAPPDATA\Android\Sdk\build-tools\<v>\apksigner.bat verify --print-certs `
