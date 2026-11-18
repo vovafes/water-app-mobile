@@ -390,5 +390,13 @@
   "Could not delete the entry": "Не вдалося видалити запис",
   "Swipe to delete": "Змахніть, щоб видалити",
   "Try again": "Повторити",
-  "By creating an account, you agree to:": "Створюючи акаунт, ви приймаєте:"
+  "By creating an account, you agree to:": "Створюючи акаунт, ви приймаєте:",
+  "Next goal": "Наступна ціль",
+  "Streaks": "Серії",
+  "Daily goals": "Цілі дня",
+  "Logging": "Записи",
+  "Big sips": "Великі порції",
+  "Total water": "Усього води",
+  "Variety": "Різноманітність",
+  "Time of day": "Час доби"
 }

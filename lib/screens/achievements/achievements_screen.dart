@@ -5,7 +5,6 @@ import '../../models/achievement.dart';
 import '../../theme.dart';
 import '../../widgets/achievement_glyph.dart';
 import '../../widgets/points_label.dart';
-import '../../widgets/tile_text_scale.dart';
 
 class AchievementsScreen extends StatefulWidget {
   const AchievementsScreen({super.key});
@@ -15,9 +14,8 @@ class AchievementsScreen extends StatefulWidget {
 }
 
 class AchievementsScreenState extends State<AchievementsScreen> {
-  List<Achievement> _achievements = [];
+  AchievementOverview? _overview;
   bool _loading = true;
-  _Filter _filter = _Filter.all;
 
   @override
   void initState() {
@@ -29,133 +27,20 @@ class AchievementsScreenState extends State<AchievementsScreen> {
 
   Future<void> _load() async {
     if (!mounted) return;
-    setState(() => _loading = true);
+    // Keep what is on screen while refreshing; the tab is reloaded on every
+    // visit, and blanking it to a spinner each time made it flicker.
+    setState(() => _loading = _overview == null);
     final res = await ApiService.get('/achievements');
     if (!mounted) return;
-    if (res['success'] == true) {
-      final body = res['data'];
-      List rawList;
-      if (body is Map && body['achievements'] is List) {
-        rawList = body['achievements'] as List;
-      } else if (body is Map && body['data'] is List) {
-        rawList = body['data'] as List;
-      } else if (body is List) {
-        rawList = body;
-      } else {
-        rawList = const [];
+    final body = res['data'];
+    setState(() {
+      if (res['success'] == true && body is Map<String, dynamic>) {
+        _overview = AchievementOverview.fromJson(body);
+      } else if (res['success'] == true && body is List) {
+        _overview = AchievementOverview.fromJson({'achievements': body});
       }
-      setState(() {
-        _achievements = rawList
-            .whereType<Map<String, dynamic>>()
-            .map(Achievement.fromJson)
-            .toList();
-        _loading = false;
-      });
-    } else {
-      setState(() => _loading = false);
-    }
-  }
-
-  List<Achievement> get _visible {
-    return switch (_filter) {
-      _Filter.all => _achievements,
-      _Filter.unlocked => _achievements.where((a) => a.unlocked).toList(),
-      _Filter.locked => _achievements.where((a) => !a.unlocked).toList(),
-    };
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final unlockedCount = _achievements.where((a) => a.unlocked).length;
-    final total = _achievements.length;
-    final totalPoints = _achievements
-        .where((a) => a.unlocked)
-        .fold(0, (sum, a) => sum + a.points);
-
-    return Scaffold(
-      appBar: AppBar(title: Text('Achievements'.tr())),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _HeroStats(
-                    unlocked: unlockedCount,
-                    total: total,
-                    points: totalPoints,
-                  ),
-                  const SizedBox(height: 20),
-                  _FilterTabs(
-                    current: _filter,
-                    onChanged: (f) => setState(() => _filter = f),
-                    counts: {
-                      _Filter.all: total,
-                      _Filter.unlocked: unlockedCount,
-                      _Filter.locked: total - unlockedCount,
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  if (_visible.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 48),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(
-                              switch (_filter) {
-                                _Filter.unlocked => Icons.lock_outline_rounded,
-                                _Filter.locked => Icons.emoji_events_outlined,
-                                _Filter.all => Icons.star_outline_rounded,
-                              },
-                              size: 48,
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              switch (_filter) {
-                                _Filter.unlocked =>
-                                  'No badges unlocked yet — start logging drinks!'
-                                      .tr(),
-                                _Filter.locked => 'All badges unlocked!'.tr(),
-                                _Filter.all => 'No achievements available'.tr(),
-                              },
-                              style: TextStyle(
-                                color: cs.onSurface.withValues(alpha: 0.6),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        // A fixed height that grows with the (capped) text
-                        // scale; the old aspect ratio overflowed the tile
-                        // by 11 px at large system text.
-                        mainAxisExtent: 142 * tileTextScale(context),
-                      ),
-                      itemCount: _visible.length,
-                      itemBuilder: (context, i) => TileTextScale(
-                        child: _BadgeTile(
-                          achievement: _visible[i],
-                          onTap: () => _showDetail(context, _visible[i]),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-    );
+      _loading = false;
+    });
   }
 
   void _showDetail(BuildContext context, Achievement a) {
@@ -168,254 +53,349 @@ class AchievementsScreenState extends State<AchievementsScreen> {
       builder: (ctx) => _BadgeDetail(achievement: a),
     );
   }
-}
-
-enum _Filter { all, unlocked, locked }
-
-class _HeroStats extends StatelessWidget {
-  final int unlocked;
-  final int total;
-  final int points;
-  const _HeroStats({
-    required this.unlocked,
-    required this.total,
-    required this.points,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final progress = total > 0 ? unlocked / total : 0.0;
-    final pct = (progress * 100).round();
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            BrandColors.gradientStartStrong,
-            BrandColors.gradientEndStrong,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                width: 76,
-                height: 76,
-                child: CircularProgressIndicator(
-                  value: progress,
-                  strokeWidth: 8,
-                  backgroundColor: Colors.white.withValues(alpha: 0.2),
-                  color: Colors.white,
-                ),
-              ),
-              const Icon(
-                Icons.emoji_events_rounded,
-                size: 34,
-                color: Colors.white,
-              ),
-            ],
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$unlocked / $total ${'badges'.tr()}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  '$pct% ${'complete'.tr()}',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.85),
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                if (points > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: PointsLabel(
-                      text: '$points ${'points'.tr()}',
-                      color: Colors.white,
-                      iconColor: BrandColors.amber300,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FilterTabs extends StatelessWidget {
-  final _Filter current;
-  final ValueChanged<_Filter> onChanged;
-  final Map<_Filter, int> counts;
-  const _FilterTabs({
-    required this.current,
-    required this.onChanged,
-    required this.counts,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Each segment gets a third of the width, which German blows past
-    // ("Freigeschaltet (0)" wraps onto two lines and desyncs the row
-    // heights). Scaling down beats wrapping or ellipsing the count away.
-    Widget segment(String label, int count) => FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Text('$label ($count)', maxLines: 1, softWrap: false),
-    );
-
-    return SegmentedButton<_Filter>(
-      segments: [
-        ButtonSegment(
-          value: _Filter.all,
-          label: segment('All'.tr(), counts[_Filter.all] ?? 0),
-        ),
-        ButtonSegment(
-          value: _Filter.unlocked,
-          label: segment('Unlocked'.tr(), counts[_Filter.unlocked] ?? 0),
-        ),
-        ButtonSegment(
-          value: _Filter.locked,
-          label: segment('Locked'.tr(), counts[_Filter.locked] ?? 0),
-        ),
-      ],
-      selected: {current},
-      onSelectionChanged: (s) => onChanged(s.first),
-    );
-  }
-}
-
-class _BadgeTile extends StatelessWidget {
-  final Achievement achievement;
-  final VoidCallback onTap;
-  const _BadgeTile({required this.achievement, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final unlocked = achievement.unlocked;
+    final overview = _overview;
 
-    // Strong amber gradient + white text for unlocked badges so they
-    // read well on every theme. Locked tiles use the surface
-    // container with subtle outline.
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          color: unlocked ? BrandColors.amber500 : cs.surfaceContainer,
-          border: Border.all(
-            color: unlocked ? Colors.transparent : cs.outline,
-            width: 1,
-          ),
-        ),
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: unlocked ? Colors.white : cs.surfaceContainerHigh,
-                    boxShadow: unlocked
-                        ? [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  alignment: Alignment.center,
-                  child: AchievementGlyph(
-                    achievement: achievement,
-                    size: 28,
-                    color: unlocked
-                        ? BrandColors.amber500
-                        : cs.onSurface.withValues(alpha: 0.42),
-                  ),
-                ),
-                if (unlocked)
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check_circle,
-                        color: BrandColors.emerald500,
-                        size: 16,
+    return Scaffold(
+      appBar: AppBar(title: Text('Achievements'.tr())),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (overview != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4, bottom: 14),
+                      child: Text(
+                        '${overview.unlocked} / ${overview.total} ${'unlocked'.tr()} · '
+                        '${overview.points} ${'points'.tr()}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: cs.onSurface.withValues(alpha: 0.6),
+                        ),
                       ),
                     ),
+                    if (overview.next != null) ...[
+                      _NextGoal(
+                        achievement: overview.next!,
+                        group: overview.nextGroup,
+                        onTap: () => _showDetail(context, overview.next!),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    for (final group in overview.groups) ...[
+                      _GroupCard(
+                        group: group,
+                        onTap: (a) => _showDetail(context, a),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+                  ],
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+String _count(int n) => NumberFormat.decimalPattern().format(n);
+
+/// "4 / 10" or "4,200 / 10,000 ml", localised.
+String _progress(Achievement a) => a.progressLabel(_count, 'ml'.tr());
+
+/// A thin bar with the numbers beside it.
+class _ProgressBar extends StatelessWidget {
+  final Achievement achievement;
+  const _ProgressBar({required this.achievement});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              // Never an empty-looking bar once there is some progress.
+              value: (achievement.percent / 100).clamp(0.02, 1.0),
+              minHeight: 6,
+              backgroundColor: cs.onSurface.withValues(alpha: 0.1),
+              color: BrandColors.amber500,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          _progress(achievement),
+          style: TextStyle(
+            fontSize: 12,
+            color: cs.onSurface.withValues(alpha: 0.65),
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The one thing worth chasing: the rung closest to done.
+class _NextGoal extends StatelessWidget {
+  final Achievement achievement;
+  final String? group;
+  final VoidCallback onTap;
+  const _NextGoal({
+    required this.achievement,
+    required this.group,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: BrandColors.amber500,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    alignment: Alignment.center,
+                    child: AchievementGlyph(
+                      achievement: achievement,
+                      size: 28,
+                      color: Colors.white,
+                    ),
                   ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          group == null
+                              ? 'Next goal'.tr()
+                              : '${'Next goal'.tr()} · ${context.tr(group!)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: BrandColors.amber500,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          context.tr(achievement.name),
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          context.tr(achievement.description),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: cs.onSurface.withValues(alpha: 0.65),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _ProgressBar(achievement: achievement),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One ladder, drawn as a vertical path: the part already climbed is amber.
+class _GroupCard extends StatelessWidget {
+  final AchievementGroup group;
+  final void Function(Achievement) onTap;
+  const _GroupCard({required this.group, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  context.tr(group.title),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '${group.unlockedCount} / ${group.items.length}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              // Seeded achievement names double as translation keys, same
-              // as the web's __($a->name).
-              context.tr(achievement.name),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
-                color: unlocked
-                    ? Colors.white
-                    : cs.onSurface.withValues(alpha: 0.75),
+            const SizedBox(height: 14),
+            for (var i = 0; i < group.items.length; i++)
+              _Rung(
+                achievement: group.items[i],
+                isLast: i == group.items.length - 1,
+                onTap: () => onTap(group.items[i]),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Rung extends StatelessWidget {
+  final Achievement achievement;
+  final bool isLast;
+  final VoidCallback onTap;
+  const _Rung({
+    required this.achievement,
+    required this.isLast,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final done = achievement.state == 'done';
+    final current = achievement.state == 'current';
+
+    final nodeFill = done
+        ? BrandColors.amber500
+        : current
+        ? cs.surface
+        : cs.surfaceContainerHigh;
+    final glyphColor = done
+        ? Colors.white
+        : current
+        ? BrandColors.amber500
+        : cs.onSurface.withValues(alpha: 0.42);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 40,
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: nodeFill,
+                      shape: BoxShape.circle,
+                      border: current
+                          ? Border.all(color: BrandColors.amber500, width: 2)
+                          : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: AchievementGlyph(
+                      achievement: achievement,
+                      size: 20,
+                      color: glyphColor,
+                    ),
+                  ),
+                  if (!isLast)
+                    Expanded(
+                      child: Container(
+                        width: 2,
+                        color: done
+                            ? BrandColors.amber500
+                            : cs.onSurface.withValues(alpha: 0.15),
+                      ),
+                    ),
+                ],
               ),
             ),
-            if (achievement.points > 0) ...[
-              const SizedBox(height: 2),
-              PointsLabel(
-                text: '${achievement.points}',
-                fontSize: 10.5,
-                fontWeight: unlocked ? FontWeight.w600 : FontWeight.normal,
-                // Gold on gold would vanish, so the star turns white on the
-                // unlocked card.
-                iconColor: unlocked ? Colors.white : BrandColors.amber500,
-                color: unlocked
-                    ? Colors.white.withValues(alpha: 0.95)
-                    : cs.onSurface.withValues(alpha: 0.5),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: isLast ? 4 : 18, top: 2),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            context.tr(achievement.name),
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w600,
+                              color: achievement.state == 'locked'
+                                  ? cs.onSurface.withValues(alpha: 0.55)
+                                  : null,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '+${achievement.points}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: done
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: done
+                                ? BrandColors.amber500
+                                : cs.onSurface.withValues(alpha: 0.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      context.tr(achievement.description),
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: cs.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    if (current) ...[
+                      const SizedBox(height: 8),
+                      _ProgressBar(achievement: achievement),
+                    ],
+                  ],
+                ),
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -552,6 +532,10 @@ class _BadgeDetail extends StatelessWidget {
                     ],
                   ),
                 ),
+              if (!unlocked && achievement.target > 1) ...[
+                const SizedBox(height: 16),
+                _ProgressBar(achievement: achievement),
+              ],
               if (achievement.points > 0) ...[
                 const SizedBox(height: 8),
                 PointsLabel(

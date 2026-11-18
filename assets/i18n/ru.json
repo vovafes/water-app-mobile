@@ -390,5 +390,13 @@
   "Could not delete the entry": "Не удалось удалить запись",
   "Swipe to delete": "Смахни, чтобы удалить",
   "Try again": "Повторить",
-  "By creating an account, you agree to:": "Создавая аккаунт, ты принимаешь:"
+  "By creating an account, you agree to:": "Создавая аккаунт, ты принимаешь:",
+  "Next goal": "Следующая цель",
+  "Streaks": "Серии",
+  "Daily goals": "Цели дня",
+  "Logging": "Записи",
+  "Big sips": "Большие порции",
+  "Total water": "Всего воды",
+  "Variety": "Разнообразие",
+  "Time of day": "Время суток"
 }

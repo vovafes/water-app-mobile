@@ -92,6 +92,15 @@ void main() {
       // a nested drink. It is a key, so the display sites that render it
       // through context.tr(log.drinkName) still translate it.
       'Drink',
+      // Wire-format names and tags in models/achievement.dart: 'unlocked' and
+      // 'points' are JSON keys of /achievements, 'ml' is the API's unit tag,
+      // and 'Other' / 'Achievements' are group titles that are keys, rendered
+      // through context.tr(group.title) at the display site.
+      'unlocked',
+      'points',
+      'ml',
+      'Other',
+      'Achievements',
     };
 
     final literal = RegExp(r"'((?:[^'\\]|\\.)*)'");
