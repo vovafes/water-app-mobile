@@ -15,6 +15,10 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # 3.3 cannot resolve together with easy_localization's intl constraint
+      # (pub fails). Revisit when easy_localization moves.
+      - dependency-name: table_calendar
+        versions: [">=3.3.0"]
     labels: [dependencies]
 
   - package-ecosystem: github-actions
