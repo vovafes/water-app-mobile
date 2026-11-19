@@ -272,7 +272,7 @@
   "Repeat on": "Повторювати",
   "Resend verification email": "Надіслати посилання ще раз",
   "Reset password": "Скинути пароль",
-  "Reset your password": "Скидання паролю",
+  "Reset your password": "Скидання пароля",
   "Restore": "Відновити",
   "Routine": "Режим",
   "Save": "Зберегти",
@@ -410,5 +410,12 @@
   "Not confirmed yet. Open the link in the email, then try again.": "Ще не підтверджено. Відкрийте посилання з листа й спробуйте ще раз.",
   "Wrong address? Log out": "Не та адреса? Вийти",
   "Load more": "Завантажити ще",
-  "New": "Нове"
+  "New": "Нове",
+  "Forgot password?": "Забули пароль?",
+  "Enter the email you signed up with. We'll send you a link to choose a new password.": "Введіть email, з яким реєструвалися. Ми надішлемо посилання, щоб обрати новий пароль.",
+  "If that address has an account, a reset link is on its way. Look in your spam folder too.": "Якщо для цієї адреси є акаунт, посилання вже в дорозі. Загляньте й у папку «Спам».",
+  "Too many attempts. Wait a minute and try again.": "Забагато спроб. Зачекайте хвилину й спробуйте знову.",
+  "Could not send the link. Check your connection and try again.": "Не вдалося надіслати посилання. Перевірте підключення й спробуйте знову.",
+  "I accept the Terms of Use and the Privacy Policy.": "Я приймаю Умови використання та Політику конфіденційності.",
+  "I consent to my weight, height, sex and date of birth being processed to calculate my daily water target. These are health-related data. I can withdraw this at any time by deleting my account.": "Даю згоду на обробку моєї ваги, зросту, статі та дати народження для розрахунку денної норми води. Це дані, що стосуються здоров’я. Я можу відкликати згоду будь-коли, видаливши акаунт."
 }

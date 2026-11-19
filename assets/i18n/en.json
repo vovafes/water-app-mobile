@@ -410,5 +410,12 @@
   "Not confirmed yet. Open the link in the email, then try again.": "Not confirmed yet. Open the link in the email, then try again.",
   "Wrong address? Log out": "Wrong address? Log out",
   "Load more": "Load more",
-  "New": "New"
+  "New": "New",
+  "Forgot password?": "Forgot password?",
+  "Enter the email you signed up with. We'll send you a link to choose a new password.": "Enter the email you signed up with. We'll send you a link to choose a new password.",
+  "If that address has an account, a reset link is on its way. Look in your spam folder too.": "If that address has an account, a reset link is on its way. Look in your spam folder too.",
+  "Too many attempts. Wait a minute and try again.": "Too many attempts. Wait a minute and try again.",
+  "Could not send the link. Check your connection and try again.": "Could not send the link. Check your connection and try again.",
+  "I accept the Terms of Use and the Privacy Policy.": "I accept the Terms of Use and the Privacy Policy.",
+  "I consent to my weight, height, sex and date of birth being processed to calculate my daily water target. These are health-related data. I can withdraw this at any time by deleting my account.": "I consent to my weight, height, sex and date of birth being processed to calculate my daily water target. These are health-related data. I can withdraw this at any time by deleting my account."
 }

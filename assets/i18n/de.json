@@ -410,5 +410,12 @@
   "Not confirmed yet. Open the link in the email, then try again.": "Noch nicht bestätigt. Öffne den Link in der E-Mail und versuche es dann erneut.",
   "Wrong address? Log out": "Falsche Adresse? Abmelden",
   "Load more": "Mehr laden",
-  "New": "Neu"
+  "New": "Neu",
+  "Forgot password?": "Passwort vergessen?",
+  "Enter the email you signed up with. We'll send you a link to choose a new password.": "Gib die E-Mail-Adresse ein, mit der du dich registriert hast. Wir senden dir einen Link, um ein neues Passwort zu wählen.",
+  "If that address has an account, a reset link is on its way. Look in your spam folder too.": "Falls zu dieser Adresse ein Konto existiert, ist ein Link unterwegs. Schau auch im Spam-Ordner nach.",
+  "Too many attempts. Wait a minute and try again.": "Zu viele Versuche. Warte eine Minute und versuche es erneut.",
+  "Could not send the link. Check your connection and try again.": "Der Link konnte nicht gesendet werden. Prüfe deine Verbindung und versuche es erneut.",
+  "I accept the Terms of Use and the Privacy Policy.": "Ich akzeptiere die Nutzungsbedingungen und die Datenschutzerklärung.",
+  "I consent to my weight, height, sex and date of birth being processed to calculate my daily water target. These are health-related data. I can withdraw this at any time by deleting my account.": "Ich willige in die Verarbeitung meines Gewichts, meiner Größe, meines Geschlechts und meines Geburtsdatums zur Berechnung meines täglichen Wasserziels ein. Dies sind gesundheitsbezogene Daten. Ich kann die Einwilligung jederzeit widerrufen, indem ich mein Konto lösche."
 }

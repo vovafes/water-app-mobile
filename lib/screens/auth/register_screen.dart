@@ -18,6 +18,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passCtrl = TextEditingController();
   bool _obscure = true;
 
+  // Neither is pre-ticked: consent has to be an act. The second is the explicit
+  // consent the GDPR asks for before processing health-related data.
+  bool _terms = false;
+  bool _health = false;
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -87,15 +92,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              _ConsentRow(
+                value: _terms,
+                onChanged: (v) => setState(() => _terms = v),
+                label: 'I accept the Terms of Use and the Privacy Policy.'.tr(),
+              ),
+              Wrap(
+                children: [
+                  TextButton(
+                    onPressed: () => openExternal(
+                      LegalUrls.terms(context.locale.languageCode),
+                    ),
+                    child: Text('Terms of Use'.tr()),
+                  ),
+                  TextButton(
+                    onPressed: () => openExternal(
+                      LegalUrls.privacy(context.locale.languageCode),
+                    ),
+                    child: Text('Privacy Policy'.tr()),
+                  ),
+                ],
+              ),
+              _ConsentRow(
+                value: _health,
+                onChanged: (v) => setState(() => _health = v),
+                label:
+                    'I consent to my weight, height, sex and date of birth being processed to calculate my daily water target. These are health-related data. I can withdraw this at any time by deleting my account.'
+                        .tr(),
+              ),
+              const SizedBox(height: 20),
               FilledButton(
-                onPressed: auth.loading
+                onPressed: auth.loading || !_terms || !_health
                     ? null
                     : () async {
                         final ok = await context.read<AuthProvider>().register(
                           _nameCtrl.text.trim(),
                           _emailCtrl.text.trim(),
                           _passCtrl.text,
+                          termsAccepted: _terms,
+                          healthConsent: _health,
                         );
                         if (ok && context.mounted) Navigator.pop(context);
                       },
@@ -116,39 +152,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         style: const TextStyle(fontSize: 16),
                       ),
               ),
-              const SizedBox(height: 16),
-              // The website's sign-up form carries this line; the app's did
-              // not, so an account could be made here without ever seeing the
-              // Terms or the Privacy Policy.
-              Text(
-                'By creating an account, you agree to:'.tr(),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
-              ),
-              Wrap(
-                alignment: WrapAlignment.center,
-                children: [
-                  TextButton(
-                    onPressed: () => openExternal(
-                      LegalUrls.terms(context.locale.languageCode),
-                    ),
-                    child: Text('Terms of Use'.tr()),
-                  ),
-                  TextButton(
-                    onPressed: () => openExternal(
-                      LegalUrls.privacy(context.locale.languageCode),
-                    ),
-                    child: Text('Privacy Policy'.tr()),
-                  ),
-                ],
-              ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A checkbox with its text beside it, tappable as a whole.
+class _ConsentRow extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final String label;
+
+  const _ConsentRow({
+    required this.value,
+    required this.onChanged,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: () => onChanged(!value),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Checkbox(value: value, onChanged: (v) => onChanged(v ?? false)),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    height: 1.4,
+                    color: cs.onSurface.withValues(alpha: 0.8),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

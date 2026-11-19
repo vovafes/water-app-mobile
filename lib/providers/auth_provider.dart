@@ -7,6 +7,28 @@ import '../models/entitlement.dart';
 import '../models/user.dart';
 import '../premium/premium_gate.dart';
 
+/// What came of asking for a password-reset link.
+enum PasswordResetOutcome { sent, throttled, invalid, failed }
+
+class PasswordResetResult {
+  final PasswordResetOutcome outcome;
+
+  /// The server's own wording for [PasswordResetOutcome.invalid].
+  final String? message;
+
+  const PasswordResetResult.sent()
+    : outcome = PasswordResetOutcome.sent,
+      message = null;
+  const PasswordResetResult.throttled()
+    : outcome = PasswordResetOutcome.throttled,
+      message = null;
+  const PasswordResetResult.failed()
+    : outcome = PasswordResetOutcome.failed,
+      message = null;
+  const PasswordResetResult.invalid(this.message)
+    : outcome = PasswordResetOutcome.invalid;
+}
+
 class AuthProvider extends ChangeNotifier {
   User? _user;
   bool _loading = false;
@@ -66,6 +88,30 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Asks the server to mail a link for choosing a new password.
+  ///
+  /// The server answers the same whether or not the address has an account (so
+  /// the form cannot be used to find out who is registered), and the screen
+  /// must not hint otherwise either.
+  Future<PasswordResetResult> requestPasswordReset(String email) async {
+    final res = await ApiService.post('/auth/forgot-password', {
+      'email': email,
+    }, auth: false);
+    if (res['success'] == true) return const PasswordResetResult.sent();
+    final status = res['status'];
+    if (status == 429) return const PasswordResetResult.throttled();
+    if (status == 422) {
+      final data = res['data'];
+      return PasswordResetResult.invalid(
+        _readError(
+          data is Map<String, dynamic> ? data : <String, dynamic>{},
+          'Could not send the link. Check your connection and try again.'.tr(),
+        ),
+      );
+    }
+    return const PasswordResetResult.failed();
+  }
+
   /// Asks the backend to send the confirmation link again.
   Future<bool> resendVerification() async {
     final res = await ApiService.post(
@@ -120,7 +166,17 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> register(String name, String email, String password) async {
+  /// [termsAccepted] and [healthConsent] are the two boxes on the sign-up form:
+  /// the Terms and Privacy Policy, and the explicit consent to process the body
+  /// measurements the target is built from. The server refuses an account
+  /// without both and keeps the moment each was given.
+  Future<bool> register(
+    String name,
+    String email,
+    String password, {
+    required bool termsAccepted,
+    required bool healthConsent,
+  }) async {
     _loading = true;
     _error = null;
     notifyListeners();
@@ -131,6 +187,8 @@ class AuthProvider extends ChangeNotifier {
       'email': email,
       'password': password,
       'password_confirmation': password,
+      'terms': termsAccepted,
+      'health_consent': healthConsent,
       // Without it every account started on UTC, so "today" rolled over at the
       // wrong hour for anyone not living on the Greenwich meridian.
       'timezone': ?zone,

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme.dart';
+import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -98,7 +99,26 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () async {
+                      final auth = context.read<AuthProvider>();
+                      auth.clearError();
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ForgotPasswordScreen(
+                            initialEmail: _emailCtrl.text.trim(),
+                          ),
+                        ),
+                      );
+                      auth.clearError();
+                    },
+                    child: Text('Forgot password?'.tr()),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 FilledButton(
                   onPressed: auth.loading
                       ? null

@@ -410,5 +410,12 @@
   "Not confirmed yet. Open the link in the email, then try again.": "Пока не подтверждено. Открой ссылку из письма и попробуй ещё раз.",
   "Wrong address? Log out": "Не тот адрес? Выйти",
   "Load more": "Загрузить ещё",
-  "New": "Новое"
+  "New": "Новое",
+  "Forgot password?": "Забыл пароль?",
+  "Enter the email you signed up with. We'll send you a link to choose a new password.": "Введи email, с которым регистрировался. Мы отправим ссылку, чтобы выбрать новый пароль.",
+  "If that address has an account, a reset link is on its way. Look in your spam folder too.": "Если для этого адреса есть аккаунт, ссылка уже в пути. Загляни и в папку «Спам».",
+  "Too many attempts. Wait a minute and try again.": "Слишком много попыток. Подожди минуту и попробуй снова.",
+  "Could not send the link. Check your connection and try again.": "Не удалось отправить ссылку. Проверь подключение и попробуй снова.",
+  "I accept the Terms of Use and the Privacy Policy.": "Я принимаю Условия использования и Политику конфиденциальности.",
+  "I consent to my weight, height, sex and date of birth being processed to calculate my daily water target. These are health-related data. I can withdraw this at any time by deleting my account.": "Даю согласие на обработку моих веса, роста, пола и даты рождения для расчёта дневной нормы воды. Это данные, относящиеся к здоровью. Я могу отозвать согласие в любой момент, удалив аккаунт."
 }
