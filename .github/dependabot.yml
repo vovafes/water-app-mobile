@@ -19,6 +19,9 @@ updates:
       # (pub fails). Revisit when easy_localization moves.
       - dependency-name: table_calendar
         versions: [">=3.3.0"]
+      # intl is pinned by the Flutter SDK's flutter_localizations; a newer
+      # version in pubspec fails to resolve.
+      - dependency-name: intl
     labels: [dependencies]
 
   - package-ecosystem: github-actions
