@@ -100,5 +100,5 @@ flutter {
 dependencies {
     // Core library desugaring runtime. Version must match the AGP requirements
     // — 2.1.4 is the minimum that pairs with current Flutter stable.
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }

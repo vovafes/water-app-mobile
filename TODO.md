@@ -51,11 +51,6 @@ nav bar only.
 weeks of regular logging the oldest entries silently drop off the "All" view.
 Needs a "load more" at the end of the list.
 
-### Landscape works but is cramped
-The app rotates and nothing overflows, but the hero card spans the full width
-and only two drink rows are visible. Locking to portrait is the cheap fix;
-a two-column layout is the real one.
-
 ### iOS has not been run since the 2026-11-17 pass
 The walkthrough was done on Android (Pixel 10 emulator). The changes are
 shared Dart code, but the system-bar styling in `main.dart`, the swipe-to-delete
